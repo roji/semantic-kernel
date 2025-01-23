@@ -24,12 +24,28 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
     }
 
     [Fact]
-    public virtual Task Equality_with_int()
+    public virtual Task Equal_with_int()
         => this.TestFilter(r => r.Int == 8);
 
     [Fact]
-    public virtual Task Equality_with_null_string()
+    public virtual Task Equal_reversed()
+        => this.TestFilter(r => 8 == r.Int);
+
+    [Fact]
+    public virtual Task Equal_with_null_string()
         => this.TestFilter(r => r.String == null);
+
+    [Fact]
+    public virtual Task NotEqual_with_int()
+        => this.TestFilter(r => r.Int != 8);
+
+    [Fact]
+    public virtual Task NotEqual_reversed()
+        => this.TestFilter(r => r.Int != 8);
+
+    [Fact]
+    public virtual Task NotEqual_with_null_string()
+        => this.TestFilter(r => r.String != null);
 
     [Fact]
     public virtual Task And()

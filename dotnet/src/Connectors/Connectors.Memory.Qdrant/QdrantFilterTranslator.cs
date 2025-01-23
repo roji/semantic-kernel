@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Google.Protobuf.Collections;
 using Qdrant.Client.Grpc;
@@ -27,7 +28,8 @@ internal class QdrantFilterTranslator
     private Filter Visit(Expression? node)
         => node switch
         {
-            BinaryExpression { NodeType: ExpressionType.Equal } equal => this.VisitEqual(equal),
+            BinaryExpression { NodeType: ExpressionType.Equal } equal => this.VisitEqual(equal, negated: false),
+            BinaryExpression { NodeType: ExpressionType.NotEqual } notEqual => this.VisitEqual(notEqual, negated: true),
 
             BinaryExpression { NodeType: ExpressionType.AndAlso } andAlso => this.VisitAndAlso(andAlso),
             BinaryExpression { NodeType: ExpressionType.OrElse } orElse => this.VisitOrElse(orElse),
@@ -36,58 +38,33 @@ internal class QdrantFilterTranslator
 
             // null => null, // TODO: Not sure
 
-            _ => throw new ArgumentException("Unsupported expression type: " + node.GetType().Name)
+            _ => throw new NotSupportedException("Unsupported expression type: " + node.GetType().Name)
         };
 
-    private Filter VisitBinary(BinaryExpression node)
+    private Filter VisitEqual(BinaryExpression equal, bool negated)
     {
-        switch (node.NodeType)
+        return TryProcessEqual(equal.Left, equal.Right, out var result)
+            ? result
+            : TryProcessEqual(equal.Right, equal.Left, out result)
+                ? result
+                : throw new NotSupportedException("Equality expression not supported by Qdrant");
+
+        bool TryProcessEqual(Expression first, Expression second, [NotNullWhen(true)] out Filter? result)
         {
-            case ExpressionType.Equal:
-
-            case ExpressionType.AndAlso:
-
-            case ExpressionType.OrElse:
-                var leftFilter = this.Visit(node.Left);
-                var rightFilter = this.Visit(node.Right);
-
-                throw new NotImplementedException();
-
-                // return node;
-
-            case ExpressionType.NotEqual:
-            case ExpressionType.Not:
-                throw new NotImplementedException();
-
-            default:
-                throw new ArgumentException("Unsupported binary expression type: " + node.NodeType);
-        }
-    }
-
-    private Filter VisitEqual(BinaryExpression equal)
-    {
-        // TODO: Flip sides
-        // TODO: Captured variable
-        // TODO: Nullable
-        if (equal.Left is MemberExpression memberExpression
-            && memberExpression.Expression == this._recordParameter
-            && equal.Right is ConstantExpression { Value: var constantValue })
-        {
-            if (!this._storagePropertyNames.TryGetValue(memberExpression.Member.Name, out var storagePropertyName))
+            // TODO: Captured variable
+            // TODO: Nullable
+            if (first is MemberExpression memberExpression
+                && memberExpression.Expression == this._recordParameter
+                && second is ConstantExpression { Value: var constantValue })
             {
-                throw new InvalidOperationException($"Property name '{memberExpression.Member.Name}' provided as part of the filter clause is not a valid property name.");
-            }
-
-            if (constantValue is null)
-            {
-                return new Filter { Must = { new Condition { IsNull = new() { Key = storagePropertyName } } } };
-            }
-
-            return new Filter
-            {
-                Must =
+                if (!this._storagePropertyNames.TryGetValue(memberExpression.Member.Name, out var storagePropertyName))
                 {
-                    new Condition
+                    throw new InvalidOperationException($"Property name '{memberExpression.Member.Name}' provided as part of the filter clause is not a valid property name.");
+                }
+
+                var condition = constantValue is null
+                    ? new Condition { IsNull = new() { Key = storagePropertyName } }
+                    : new Condition
                     {
                         Field = new FieldCondition
                         {
@@ -102,12 +79,25 @@ internal class QdrantFilterTranslator
                                 _ => throw new InvalidOperationException($"Unsupported filter value type '{constantValue.GetType().Name}'.")
                             }
                         }
-                    }
-                }
-            };
-        }
+                    };
 
-        throw new NotImplementedException();
+                var filter = new Filter();
+                if (negated)
+                {
+                    filter.MustNot.Add(condition);
+                }
+                else
+                {
+                    filter.Must.Add(condition);
+                }
+
+                result = filter;
+                return true;
+            }
+
+            result = null;
+            return false;
+        }
     }
 
     private Filter VisitAndAlso(BinaryExpression andAlso)
@@ -158,21 +148,13 @@ internal class QdrantFilterTranslator
         return result;
 
         static RepeatedField<Condition> GetShouldConditions(Filter filter)
-        {
-            if (filter.MustNot.Count == 0)
+            => filter switch
             {
-                if (filter.Must.Count == 0)
-                {
-                    return filter.Should;
-                }
+                { Must.Count: 0, MustNot.Count: 0 } => filter.Should,
+                { Must.Count: 1, MustNot.Count: 0, Should.Count: 0 } => [filter.Must[0]],
+                { Must.Count: 0, MustNot.Count: 1, Should.Count: 0 } => [filter.MustNot[0]],
 
-                if (filter.Must.Count == 1 && filter.Should.Count == 0)
-                {
-                    return [filter.Must[0]];
-                }
-            }
-
-            throw new NotSupportedException("Qdrant does not support the given logical operator combination");
-        }
+                _ => throw new NotSupportedException("Qdrant does not support the given logical operator combination")
+            };
     }
 }
