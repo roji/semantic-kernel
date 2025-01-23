@@ -8,6 +8,8 @@ namespace VectorDataSpecificationTests.Filter;
 public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
     where TKey : notnull
 {
+    private List<FilterRecord<TKey>>? _testData;
+
     public virtual async Task InitializeAsync()
     {
         var vectorStore = this.GetVectorStore();
@@ -26,12 +28,14 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
 
     protected abstract IVectorStore GetVectorStore();
 
-    protected virtual async Task Seed()
+    public List<FilterRecord<TKey>> TestData => this._testData ??= this.GetTestData();
+
+    protected virtual List<FilterRecord<TKey>> GetTestData()
     {
         // All records have the same vector - this fixture is about testing criteria filtering only
         var vector = new ReadOnlyMemory<float>([1, 2, 3]);
 
-        FilterRecord<TKey>[] records =
+        return
         [
             new()
             {
@@ -66,9 +70,15 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
                 Vector = vector
             }
         ];
+    }
+
+    protected virtual async Task Seed()
+    {
+        // All records have the same vector - this fixture is about testing criteria filtering only
+        var vector = new ReadOnlyMemory<float>([1, 2, 3]);
 
         // TODO: UpsertBatchAsync returns IAsyncEnumerable<TKey> (to support server-generated keys?), but this makes it quite hard to use:
-        await foreach (var _ in this.Collection.UpsertBatchAsync(records))
+        await foreach (var _ in this.Collection.UpsertBatchAsync(this.TestData))
         {
         }
     }
