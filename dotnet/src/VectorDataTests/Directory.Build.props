@@ -1,0 +1,11 @@
+<Project>
+  <Import Project="../../Directory.Build.props" />
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA2007;VSTHRD111</NoWarn> <!-- Consider calling ConfigureAwait on the awaited task -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn> <!-- Missing XML comment for publicly visible type or member -->
+    <NoWarn>$(NoWarn);CA1720</NoWarn> <!-- Identifier contains type name -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn> <!-- Remove the underscores from member name -->
+  </PropertyGroup>
+
+</Project>

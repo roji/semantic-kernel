@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using Microsoft.Extensions.VectorData;
 using Qdrant.Client.Grpc;
 
@@ -19,15 +20,9 @@ internal static class QdrantVectorStoreCollectionSearchMapping
     /// <param name="storagePropertyNames">A mapping of data model property names to the names under which they are stored.</param>
     /// <returns>The Qdrant <see cref="Filter"/>.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the provided filter contains unsupported types, values or unknown properties.</exception>
-    public static Filter BuildFilter(VectorSearchFilter? basicVectorSearchFilter, IReadOnlyDictionary<string, string> storagePropertyNames)
+    public static Filter BuildFromOldFilter(VectorSearchFilter basicVectorSearchFilter, IReadOnlyDictionary<string, string> storagePropertyNames)
     {
         var filter = new Filter();
-
-        // Return an empty filter if no filter clauses are provided.
-        if (basicVectorSearchFilter?.FilterClauses is null)
-        {
-            return filter;
-        }
 
         foreach (var filterClause in basicVectorSearchFilter.FilterClauses)
         {

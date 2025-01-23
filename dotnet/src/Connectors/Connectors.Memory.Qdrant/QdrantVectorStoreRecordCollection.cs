@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,7 +30,7 @@ public sealed class QdrantVectorStoreRecordCollection<TRecord> : IVectorStoreRec
     ];
 
     /// <summary>The default options for vector search.</summary>
-    private static readonly VectorSearchOptions s_defaultVectorSearchOptions = new();
+    private static readonly VectorSearchOptions<TRecord> s_defaultVectorSearchOptions = new();
 
     /// <summary>The name of this database for telemetry purposes.</summary>
     private const string DatabaseName = "Qdrant";
@@ -54,6 +55,9 @@ public sealed class QdrantVectorStoreRecordCollection<TRecord> : IVectorStoreRec
 
     /// <summary>A mapper to use for converting between qdrant point and consumer models.</summary>
     private readonly IVectorStoreRecordMapper<TRecord, PointStruct> _mapper;
+
+    /// <summary>Translates a LINQ expression tree to a Qdrant <see cref="Filter"/>.</summary>
+    private readonly QdrantFilterTranslator _filterTranslator = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="QdrantVectorStoreRecordCollection{TRecord}"/> class.
@@ -457,7 +461,7 @@ public sealed class QdrantVectorStoreRecordCollection<TRecord> : IVectorStoreRec
     }
 
     /// <inheritdoc />
-    public async Task<VectorSearchResults<TRecord>> VectorizedSearchAsync<TVector>(TVector vector, VectorSearchOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<VectorSearchResults<TRecord>> VectorizedSearchAsync<TVector>(TVector vector, VectorSearchOptions<TRecord>? options = null, CancellationToken cancellationToken = default)
     {
         Verify.NotNull(vector);
 
@@ -474,7 +478,12 @@ public sealed class QdrantVectorStoreRecordCollection<TRecord> : IVectorStoreRec
         var internalOptions = options ?? s_defaultVectorSearchOptions;
 
         // Build filter object.
-        var filter = QdrantVectorStoreCollectionSearchMapping.BuildFilter(internalOptions.Filter, this._propertyReader.StoragePropertyNamesMap);
+        var filter = internalOptions switch
+        {
+            { Filter: VectorSearchFilter oldFilter } => QdrantVectorStoreCollectionSearchMapping.BuildFromOldFilter(oldFilter, this._propertyReader.StoragePropertyNamesMap),
+            { NewFilter: Expression<Func<TRecord, bool>> newFilter } => this._filterTranslator.Translate(newFilter, this._propertyReader.StoragePropertyNamesMap),
+            _ => new Filter()
+        };
 
         // Specify the vector name if named vectors are used.
         string? vectorName = null;
