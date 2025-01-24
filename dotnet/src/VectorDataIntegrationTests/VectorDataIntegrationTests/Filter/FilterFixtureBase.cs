@@ -21,7 +21,7 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
         }
 
         await this.Collection.CreateCollectionAsync();
-        await this.Seed();
+        await this.SeedAsync();
     }
 
     public virtual IVectorStoreRecordCollection<TKey, FilterRecord<TKey>> Collection { get; private set; } = null!;
@@ -43,6 +43,7 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
                 Int = 8,
                 String = "foo",
                 Int2 = 80,
+                Strings = ["x", "y"],
                 Vector = vector
             },
             new()
@@ -51,6 +52,7 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
                 Int = 9,
                 String = "bar",
                 Int2 = 90,
+                Strings = ["a", "b"],
                 Vector = vector
             },
             new()
@@ -59,6 +61,7 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
                 Int = 9,
                 String = "foo",
                 Int2 = 9,
+                Strings = ["x"],
                 Vector = vector
             },
             new()
@@ -67,16 +70,14 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
                 Int = 10,
                 String = null,
                 Int2 = 100,
+                Strings = ["x", "y", "z"],
                 Vector = vector
             }
         ];
     }
 
-    protected virtual async Task Seed()
+    protected virtual async Task SeedAsync()
     {
-        // All records have the same vector - this fixture is about testing criteria filtering only
-        var vector = new ReadOnlyMemory<float>([1, 2, 3]);
-
         // TODO: UpsertBatchAsync returns IAsyncEnumerable<TKey> (to support server-generated keys?), but this makes it quite hard to use:
         await foreach (var _ in this.Collection.UpsertBatchAsync(this.TestData))
         {
@@ -103,6 +104,9 @@ public class FilterRecord<TKey>
 
     [VectorStoreRecordData(IsFilterable = true)]
     public required int Int2 { get; set; }
+
+    [VectorStoreRecordData(IsFilterable = true)]
+    public required string[] Strings { get; set; }
 
     // TODO: Move this to an overridable function on the fixture, make dimensions configurable
     [VectorStoreRecordVector(3, DistanceFunction.CosineSimilarity, IndexKind.Hnsw)]

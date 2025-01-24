@@ -441,9 +441,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "kernel-functions-generator"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VectorDataIntegrationTests", "VectorDataIntegrationTests", "{4F381919-F1BE-47D8-8558-3187ED04A84F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QdrantIntegrationTests", "src\VectorDataTests\QdrantIntegrationTests\QdrantIntegrationTests.csproj", "{27D33AB3-4DFF-48BC-8D76-FB2CDF90B707}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QdrantIntegrationTests", "src\VectorDataIntegrationTests\QdrantIntegrationTests\QdrantIntegrationTests.csproj", "{27D33AB3-4DFF-48BC-8D76-FB2CDF90B707}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VectorDataIntegrationTests", "src\VectorDataTests\VectorDataIntegrationTests\VectorDataIntegrationTests.csproj", "{B29A972F-A774-4140-AECF-6B577C476627}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VectorDataIntegrationTests", "src\VectorDataIntegrationTests\VectorDataIntegrationTests\VectorDataIntegrationTests.csproj", "{B29A972F-A774-4140-AECF-6B577C476627}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

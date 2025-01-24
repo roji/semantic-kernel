@@ -23,6 +23,8 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
             e.Int2 == a.Int2);
     }
 
+    #region Equality
+
     [Fact]
     public virtual Task Equal_with_int()
         => this.TestFilter(r => r.Int == 8);
@@ -47,6 +49,10 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
     public virtual Task NotEqual_with_null_string()
         => this.TestFilter(r => r.String != null);
 
+    #endregion Equality
+
+    #region Logical operators
+
     [Fact]
     public virtual Task And()
         => this.TestFilter(r => r.Int == 8 && r.String == "foo");
@@ -66,4 +72,14 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
     [Fact]
     public virtual Task Or_within_And()
         => this.TestFilter(r => (r.Int == 8 || r.Int == 9) && r.String == "foo");
+
+    #endregion Logical operators
+
+    #region Contains
+
+    [Fact]
+    public virtual Task Contains_over_string_array()
+        => this.TestFilter(r => r.Strings.Contains("x"));
+
+    #endregion Contains
 }
