@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
+    <RootNamespace>QdrantTests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,7 +21,7 @@
   
   <ItemGroup>
     <ProjectReference Include="..\..\Connectors\Connectors.Memory.Qdrant\Connectors.Memory.Qdrant.csproj" />
-    <ProjectReference Include="..\VectorDataSpecificationTests\VectorDataSpecificationTests.csproj" />
+    <ProjectReference Include="..\VectorDataIntegrationTests\VectorDataIntegrationTests.csproj" />
   </ItemGroup>
   
   <ItemGroup>

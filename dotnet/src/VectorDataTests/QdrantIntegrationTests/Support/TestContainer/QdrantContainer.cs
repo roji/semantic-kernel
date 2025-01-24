@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using DotNet.Testcontainers.Containers;
 using Microsoft.Extensions.Logging;
 

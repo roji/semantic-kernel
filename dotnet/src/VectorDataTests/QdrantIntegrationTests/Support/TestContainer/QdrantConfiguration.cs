@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 using Docker.DotNet.Models;
 using DotNet.Testcontainers.Configurations;
 

@@ -13,7 +13,7 @@ public class VectorSearchOptions<TRecord>
     /// <summary>
     /// Gets or sets a search filter to use before doing the vector search.
     /// </summary>
-    [Obsolete("Use NewFilter")] // TODO: Remove
+    [Obsolete("Use NewFilter instead")]
     public VectorSearchFilter? Filter { get; init; }
 
     /// <summary>

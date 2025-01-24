@@ -13,6 +13,7 @@ namespace Microsoft.SemanticKernel.Connectors.Qdrant;
 /// </summary>
 internal static class QdrantVectorStoreCollectionSearchMapping
 {
+#pragma warning disable CS0618 // Type or member is obsolete
     /// <summary>
     /// Build a Qdrant <see cref="Filter"/> from the provided <see cref="VectorSearchFilter"/>.
     /// </summary>
@@ -67,6 +68,7 @@ internal static class QdrantVectorStoreCollectionSearchMapping
 
         return filter;
     }
+#pragma warning restore CS0618 // Type or member is obsolete
 
     /// <summary>
     /// Map the given <see cref="ScoredPoint"/> to a <see cref="VectorSearchResult{TRecord}"/>.

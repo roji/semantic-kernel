@@ -477,13 +477,16 @@ public sealed class QdrantVectorStoreRecordCollection<TRecord> : IVectorStoreRec
 
         var internalOptions = options ?? s_defaultVectorSearchOptions;
 
+#pragma warning disable CS0618 // Type or member is obsolete
         // Build filter object.
         var filter = internalOptions switch
         {
+            { Filter: not null, NewFilter: not null } => throw new ArgumentException("Either Filter or NewFilter can be specified, but not both"),
             { Filter: VectorSearchFilter oldFilter } => QdrantVectorStoreCollectionSearchMapping.BuildFromOldFilter(oldFilter, this._propertyReader.StoragePropertyNamesMap),
             { NewFilter: Expression<Func<TRecord, bool>> newFilter } => this._filterTranslator.Translate(newFilter, this._propertyReader.StoragePropertyNamesMap),
             _ => new Filter()
         };
+#pragma warning restore CS0618 // Type or member is obsolete
 
         // Specify the vector name if named vectors are used.
         string? vectorName = null;
