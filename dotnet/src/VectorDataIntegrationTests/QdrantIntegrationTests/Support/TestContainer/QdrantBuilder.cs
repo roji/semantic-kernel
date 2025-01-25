@@ -5,7 +5,7 @@ using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
 using Qdrant.Client.Grpc;
 
-namespace Qdrant.Client.Tests.Container;
+namespace QdrantIntegrationTests.Support.TestContainer;
 
 public sealed class QdrantBuilder : ContainerBuilder<QdrantBuilder, QdrantContainer, QdrantConfiguration>
 {

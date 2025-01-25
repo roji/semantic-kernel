@@ -445,6 +445,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QdrantIntegrationTests", "s
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VectorDataIntegrationTests", "src\VectorDataIntegrationTests\VectorDataIntegrationTests\VectorDataIntegrationTests.csproj", "{B29A972F-A774-4140-AECF-6B577C476627}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisIntegrationTests", "src\VectorDataIntegrationTests\RedisIntegrationTests\RedisIntegrationTests.csproj", "{F7EA82A4-A626-4316-AA47-EAC3A0E85870}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1190,6 +1192,12 @@ Global
 		{B29A972F-A774-4140-AECF-6B577C476627}.Publish|Any CPU.Build.0 = Debug|Any CPU
 		{B29A972F-A774-4140-AECF-6B577C476627}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B29A972F-A774-4140-AECF-6B577C476627}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7EA82A4-A626-4316-AA47-EAC3A0E85870}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7EA82A4-A626-4316-AA47-EAC3A0E85870}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7EA82A4-A626-4316-AA47-EAC3A0E85870}.Publish|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7EA82A4-A626-4316-AA47-EAC3A0E85870}.Publish|Any CPU.Build.0 = Debug|Any CPU
+		{F7EA82A4-A626-4316-AA47-EAC3A0E85870}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7EA82A4-A626-4316-AA47-EAC3A0E85870}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1354,6 +1362,7 @@ Global
 		{4F381919-F1BE-47D8-8558-3187ED04A84F} = {831DDCA2-7D2C-4C31-80DB-6BDB3E1F7AE0}
 		{27D33AB3-4DFF-48BC-8D76-FB2CDF90B707} = {4F381919-F1BE-47D8-8558-3187ED04A84F}
 		{B29A972F-A774-4140-AECF-6B577C476627} = {4F381919-F1BE-47D8-8558-3187ED04A84F}
+		{F7EA82A4-A626-4316-AA47-EAC3A0E85870} = {4F381919-F1BE-47D8-8558-3187ED04A84F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FBDC56A3-86AD-4323-AA0F-201E59123B83}

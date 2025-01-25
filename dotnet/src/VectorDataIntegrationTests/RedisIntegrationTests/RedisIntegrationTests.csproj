@@ -6,26 +6,22 @@
     <Nullable>enable</Nullable>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
-    <RootNamespace>QdrantIntegrationTests</RootNamespace>
+    <RootNamespace>RedisIntegrationTests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit"/>
     <PackageReference Include="xunit.runner.visualstudio">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="Testcontainers" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="Testcontainers.Redis"/>
   </ItemGroup>
-  
+
   <ItemGroup>
-    <ProjectReference Include="..\..\Connectors\Connectors.Memory.Qdrant\Connectors.Memory.Qdrant.csproj" />
-    <ProjectReference Include="..\VectorDataIntegrationTests\VectorDataIntegrationTests.csproj" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="Support\TestContainer\" />
+    <ProjectReference Include="..\..\Connectors\Connectors.Memory.Redis\Connectors.Memory.Redis.csproj" />
+    <ProjectReference Include="..\..\VectorDataIntegrationTests\VectorDataIntegrationTests\VectorDataIntegrationTests.csproj" />
   </ItemGroup>
 
 </Project>

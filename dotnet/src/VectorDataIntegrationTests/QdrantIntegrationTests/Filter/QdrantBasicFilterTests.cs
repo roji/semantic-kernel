@@ -3,10 +3,6 @@
 using VectorDataSpecificationTests.Filter;
 using Xunit;
 
-namespace QdrantTests.Filter;
+namespace QdrantIntegrationTests.Filter;
 
-public class QdrantBasicFilterTests(QdrantFilterFixture fixture) : BasicFilterTestsBase<ulong>(fixture), IClassFixture<QdrantFilterFixture>
-{
-    // public override Task And_within_Or()
-        // => Assert.ThrowsAsync<NotSupportedException>(() => base.And_within_Or());
-}
+public class QdrantBasicFilterTests(QdrantFilterFixture fixture) : BasicFilterTestsBase<ulong>(fixture), IClassFixture<QdrantFilterFixture>;

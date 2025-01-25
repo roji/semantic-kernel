@@ -2,9 +2,9 @@
 
 using Microsoft.SemanticKernel.Connectors.Qdrant;
 using Qdrant.Client;
-using Qdrant.Client.Tests.Container;
+using QdrantIntegrationTests.Support.TestContainer;
 
-namespace QdrantTests.Support;
+namespace QdrantIntegrationTests.Support;
 
 public class QdrantContainerWrapper : IAsyncDisposable
 {

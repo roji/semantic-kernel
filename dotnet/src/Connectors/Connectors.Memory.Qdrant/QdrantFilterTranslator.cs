@@ -47,7 +47,7 @@ internal class QdrantFilterTranslator
                 } contains when contains.Method.DeclaringType == typeof(Enumerable)
                 => this.TranslateContains(source, item),
 
-            _ => throw new NotSupportedException("Qdrant does not support the following expression type in filters: " + node?.GetType().Name)
+            _ => throw new NotSupportedException("Qdrant does not support the following NodeType in filters: " + node?.NodeType)
         };
 
     private Filter TranslateEqual(Expression left, Expression right, bool negated = false)

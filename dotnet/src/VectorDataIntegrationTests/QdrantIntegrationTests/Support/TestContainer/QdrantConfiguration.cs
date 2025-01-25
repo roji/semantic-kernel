@@ -3,7 +3,7 @@
 using Docker.DotNet.Models;
 using DotNet.Testcontainers.Configurations;
 
-namespace Qdrant.Client.Tests.Container;
+namespace QdrantIntegrationTests.Support.TestContainer;
 
 public sealed class QdrantConfiguration : ContainerConfiguration
 {

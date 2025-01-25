@@ -3,6 +3,6 @@
 using DotNet.Testcontainers.Containers;
 using Microsoft.Extensions.Logging;
 
-namespace Qdrant.Client.Tests.Container;
+namespace QdrantIntegrationTests.Support.TestContainer;
 
 public class QdrantContainer(QdrantConfiguration configuration) : DockerContainer(configuration);

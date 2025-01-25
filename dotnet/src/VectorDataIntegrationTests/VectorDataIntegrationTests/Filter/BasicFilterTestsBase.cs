@@ -15,6 +15,18 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
         => this.TestFilter(r => r.Int == 8);
 
     [Fact]
+    public virtual Task Equal_with_string()
+        => this.TestFilter(r => r.String == "foo");
+
+    [Fact]
+    public virtual Task Equal_with_string_containing_special_characters()
+        => this.TestFilter(r => r.String == """with special"characters'""");
+
+    [Fact]
+    public virtual Task Equal_with_string_is_not_Contains()
+        => this.TestFilter(r => r.String == "with", expectZeroResults: true);
+
+    [Fact]
     public virtual Task Equal_reversed()
         => this.TestFilter(r => 8 == r.Int);
 
@@ -27,6 +39,10 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
         => this.TestFilter(r => r.Int != 8);
 
     [Fact]
+    public virtual Task NotEqual_with_string()
+        => this.TestFilter(r => r.String != "foo");
+
+    [Fact]
     public virtual Task NotEqual_reversed()
         => this.TestFilter(r => r.Int != 8);
 
@@ -35,6 +51,26 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
         => this.TestFilter(r => r.String != null);
 
     #endregion Equality
+
+    #region Comparison
+
+    [Fact]
+    public virtual Task GreaterThan_with_int()
+        => this.TestFilter(r => r.Int > 9);
+
+    [Fact]
+    public virtual Task GreaterThanOrEqual_with_int()
+        => this.TestFilter(r => r.Int >= 9);
+
+    [Fact]
+    public virtual Task LessThan_with_int()
+        => this.TestFilter(r => r.Int < 10);
+
+    [Fact]
+    public virtual Task LessThanOrEqual_with_int()
+        => this.TestFilter(r => r.Int <= 10);
+
+    #endregion Comparison
 
     #region Logical operators
 
@@ -111,16 +147,19 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
         return this.TestFilter(r => r.Int == i);
     }
 
-    protected virtual async Task TestFilter(Expression<Func<FilterRecord<TKey>, bool>> filter)
+    protected virtual async Task TestFilter(
+        Expression<Func<FilterRecord<TKey>, bool>> filter,
+        bool expectZeroResults = false,
+        bool expectAllResults = false)
     {
         var expected = fixture.TestData.AsQueryable().Where(filter).OrderBy(r => r.Key).ToList();
 
-        if (expected.Count == 0)
+        if (expected.Count == 0 && !expectZeroResults)
         {
             Assert.Fail("The test returns zero results, and so is unreliable");
         }
 
-        if (expected.Count == fixture.TestData.Count)
+        if (expected.Count == fixture.TestData.Count && !expectAllResults)
         {
             Assert.Fail("The test returns all results, and so is unreliable");
         }
