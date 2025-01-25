@@ -6,6 +6,8 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Google.Protobuf.Collections;
 using Qdrant.Client.Grpc;
 
@@ -34,6 +36,7 @@ internal class QdrantFilterTranslator
 
             BinaryExpression { NodeType: ExpressionType.AndAlso } andAlso => this.TranslateAndAlso(andAlso.Left, andAlso.Right),
             BinaryExpression { NodeType: ExpressionType.OrElse } orElse => this.TranslateOrElse(orElse.Left, orElse.Right),
+            UnaryExpression { NodeType: ExpressionType.Not } not => this.TranslateNot(not.Operand),
 
             // TODO: Other Contains variants (e.g. List.Contains)
             MethodCallExpression
@@ -56,9 +59,9 @@ internal class QdrantFilterTranslator
 
         bool TryProcessEqual(Expression first, Expression second, [NotNullWhen(true)] out Filter? result)
         {
-            // TODO: Captured variable
             // TODO: Nullable
-            if (this.TryTranslateFieldAccess(first, out var storagePropertyName) && second is ConstantExpression { Value: var constantValue })
+            if (this.TryTranslateFieldAccess(first, out var storagePropertyName)
+                && TryGetConstant(second, out var constantValue))
             {
                 var condition = constantValue is null
                     ? new Condition { IsNull = new() { Key = storagePropertyName } }
@@ -105,40 +108,41 @@ internal class QdrantFilterTranslator
         var leftFilter = this.Translate(left);
         var rightFilter = this.Translate(right);
 
-        // Qdrant doesn't allow arbitrary nesting of logical operators, only one MUST list (AND), one SHOULD list (OR), and one MUST_NOT list (AND NOT).
-        // We can combine MUST and MUST_NOT; but we can only combine SHOULD if it's the *only* thing on the one side (no MUST/MUST_NOT), and there's no SHOULD on the other (only MUST/MUST_NOT).
-        if (leftFilter.Should.Count > 0)
+        // As long as there are only AND conditions (Must or MustNot), we can simply combine both filters into a single flat one.
+        // The moment there's a Should, things become a bit more complicated:
+        // 1. If a side contains both a Should and a Must/MustNot, it must be pushed down.
+        // 2. Otherwise, if the left's Should is empty, and the right side is only Should, we can just copy the right Should into the left's.
+        // 3. Finally, if both sides have a Should, we push down the right side and put the result in the left's Must.
+        if (leftFilter.Should.Count > 0 && (leftFilter.Must.Count > 0 || leftFilter.MustNot.Count > 0))
         {
-            return ProcessWithShould(leftFilter, rightFilter);
+            leftFilter = new Filter { Must = { new Condition { Filter = leftFilter } } };
+        }
+
+        if (rightFilter.Should.Count > 0 && (rightFilter.Must.Count > 0 || rightFilter.MustNot.Count > 0))
+        {
+            rightFilter = new Filter { Must = { new Condition { Filter = rightFilter } } };
         }
 
         if (rightFilter.Should.Count > 0)
         {
-            return ProcessWithShould(rightFilter, leftFilter);
+            if (leftFilter.Should.Count == 0)
+            {
+                leftFilter.Should.AddRange(rightFilter.Should);
+            }
+            else
+            {
+                rightFilter = new Filter { Must = { new Condition { Filter = rightFilter } } };
+            }
         }
 
         leftFilter.Must.AddRange(rightFilter.Must);
         leftFilter.MustNot.AddRange(rightFilter.MustNot);
 
         return leftFilter;
-
-        static Filter ProcessWithShould(Filter filterWithShould, Filter otherFilter)
-        {
-            if (filterWithShould.Must.Count > 0 || filterWithShould.MustNot.Count > 0 || otherFilter.Should.Count > 0)
-            {
-                throw new NotSupportedException("Qdrant does not support the given logical operator combination");
-            }
-
-            otherFilter.Should.AddRange(filterWithShould.Should);
-            return otherFilter;
-        }
     }
 
     private Filter TranslateOrElse(Expression left, Expression right)
     {
-        // Qdrant doesn't allow arbitrary nesting of logical operators, only one MUST list (AND), one SHOULD list (OR), and one MUST_NOT list (AND NOT).
-        // As a result, we can only combine single conditions with OR - the moment there's a nested AND we can't.
-
         var leftFilter = this.Translate(left);
         var rightFilter = this.Translate(right);
 
@@ -154,8 +158,34 @@ internal class QdrantFilterTranslator
                 { Must.Count: 1, MustNot.Count: 0, Should.Count: 0 } => [filter.Must[0]],
                 { Must.Count: 0, MustNot.Count: 1, Should.Count: 0 } => [filter.MustNot[0]],
 
-                _ => throw new NotSupportedException("Qdrant does not support the given logical operator combination")
+                _ => [new Condition { Filter = filter }]
             };
+    }
+
+    private Filter TranslateNot(Expression expression)
+    {
+        var filter = this.Translate(expression);
+
+        switch (filter)
+        {
+            case { Must.Count: 1, MustNot.Count: 0, Should.Count: 0 }:
+                filter.MustNot.Add(filter.Must[0]);
+                filter.Must.RemoveAt(0);
+                return filter;
+
+            case { Must.Count: 0, MustNot.Count: 1, Should.Count: 0 }:
+                filter.Must.Add(filter.MustNot[0]);
+                filter.MustNot.RemoveAt(0);
+                return filter;
+
+            case { Must.Count: 0, MustNot.Count: 0, Should.Count: > 0 }:
+                filter.MustNot.AddRange(filter.Should);
+                filter.Should.Clear();
+                return filter;
+
+            default:
+                return new Filter { MustNot = { new Condition { Filter = filter } } };
+        }
     }
 
     #endregion Logical operators
@@ -186,5 +216,26 @@ internal class QdrantFilterTranslator
 
         storagePropertyName = null;
         return false;
+    }
+
+    private static bool TryGetConstant(Expression expression, out object? constantValue)
+    {
+        switch (expression)
+        {
+            case ConstantExpression { Value: var v }:
+                constantValue = v;
+                return true;
+
+            // This identifies compiler-generated closure types which contain captured variables.
+            case MemberExpression { Expression: ConstantExpression constant, Member: FieldInfo fieldInfo }
+                when constant.Type.Attributes.HasFlag(TypeAttributes.NestedPrivate)
+                     && Attribute.IsDefined(constant.Type, typeof(CompilerGeneratedAttribute), inherit: true):
+                constantValue = fieldInfo.GetValue(constant.Value);
+                return true;
+
+            default:
+                constantValue = null;
+                return false;
+        }
     }
 }

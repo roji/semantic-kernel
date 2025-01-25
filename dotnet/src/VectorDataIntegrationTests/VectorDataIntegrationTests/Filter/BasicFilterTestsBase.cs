@@ -8,21 +8,6 @@ namespace VectorDataSpecificationTests.Filter;
 public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture)
     where TKey : notnull
 {
-    protected virtual async Task TestFilter(Expression<Func<FilterRecord<TKey>, bool>> filter)
-    {
-        var results = await fixture.Collection.VectorizedSearchAsync(
-            new ReadOnlyMemory<float>([1, 2, 3]),
-            new() { NewFilter = filter });
-
-        var expected = await results.Results.Select(r => r.Record).OrderBy(r => r.Key).ToListAsync();
-        var actual = fixture.TestData.AsQueryable().Where(filter).OrderBy(r => r.Key).ToList();
-
-        Assert.Equal(expected, actual, (e, a) =>
-            e.Int == a.Int &&
-            e.String == a.String &&
-            e.Int2 == a.Int2);
-    }
-
     #region Equality
 
     [Fact]
@@ -73,6 +58,24 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
     public virtual Task Or_within_And()
         => this.TestFilter(r => (r.Int == 8 || r.Int == 9) && r.String == "foo");
 
+    [Fact]
+    public virtual Task Not_over_Equal()
+        // ReSharper disable once NegativeEqualityExpression
+        => this.TestFilter(r => !(r.Int == 8));
+
+    [Fact]
+    public virtual Task Not_over_NotEqual()
+        // ReSharper disable once NegativeEqualityExpression
+        => this.TestFilter(r => !(r.Int != 8));
+
+    [Fact]
+    public virtual Task Not_over_And()
+        => this.TestFilter(r => !(r.Int == 8 && r.String == "foo"));
+
+    [Fact]
+    public virtual Task Not_over_Or()
+        => this.TestFilter(r => !(r.Int == 8 || r.String == "foo"));
+
     #endregion Logical operators
 
     #region Contains
@@ -82,4 +85,39 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
         => this.TestFilter(r => r.Strings.Contains("x"));
 
     #endregion Contains
+
+    [Fact]
+    public virtual Task Captured_variable()
+    {
+        // ReSharper disable once ConvertToConstant.Local
+        var i = 8;
+
+        return this.TestFilter(r => r.Int == i);
+    }
+
+    protected virtual async Task TestFilter(Expression<Func<FilterRecord<TKey>, bool>> filter)
+    {
+        var expected = fixture.TestData.AsQueryable().Where(filter).OrderBy(r => r.Key).ToList();
+
+        if (expected.Count == 0)
+        {
+            Assert.Fail("The test returns zero results, and so is unreliable");
+        }
+
+        if (expected.Count == fixture.TestData.Count)
+        {
+            Assert.Fail("The test returns all results, and so is unreliable");
+        }
+
+        var results = await fixture.Collection.VectorizedSearchAsync(
+            new ReadOnlyMemory<float>([1, 2, 3]),
+            new() { NewFilter = filter });
+
+        var actual = await results.Results.Select(r => r.Record).OrderBy(r => r.Key).ToListAsync();
+
+        Assert.Equal(expected, actual, (e, a) =>
+            e.Int == a.Int &&
+            e.String == a.String &&
+            e.Int2 == a.Int2);
+    }
 }
