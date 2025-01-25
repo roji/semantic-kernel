@@ -72,6 +72,15 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
                 Int2 = 100,
                 Strings = ["x", "y", "z"],
                 Vector = vector
+            },
+            new()
+            {
+                Key = this.GenerateNextKey(),
+                Int = 11,
+                String = "baz",
+                Int2 = 101,
+                Strings = ["y", "z"],
+                Vector = vector
             }
         ];
     }

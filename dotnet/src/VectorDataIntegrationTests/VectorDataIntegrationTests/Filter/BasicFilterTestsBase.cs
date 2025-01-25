@@ -81,8 +81,24 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
     #region Contains
 
     [Fact]
-    public virtual Task Contains_over_string_array()
+    public virtual Task Contains_over_field_string_array()
         => this.TestFilter(r => r.Strings.Contains("x"));
+
+    [Fact]
+    public virtual Task Contains_over_inline_int_array()
+        => this.TestFilter(r => new[] { 8, 10 }.Contains(r.Int));
+
+    [Fact]
+    public virtual Task Contains_over_inline_string_array()
+        => this.TestFilter(r => new[] { "foo", "baz", "unknown" }.Contains(r.String));
+
+    [Fact]
+    public virtual Task Contains_over_captured_string_array()
+    {
+        var array = new[] { "foo", "baz", "unknown" };
+
+        return this.TestFilter(r => array.Contains(r.String));
+    }
 
     #endregion Contains
 
@@ -111,7 +127,11 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
 
         var results = await fixture.Collection.VectorizedSearchAsync(
             new ReadOnlyMemory<float>([1, 2, 3]),
-            new() { NewFilter = filter });
+            new()
+            {
+                NewFilter = filter,
+                Top = 9999
+            });
 
         var actual = await results.Results.Select(r => r.Record).OrderBy(r => r.Key).ToListAsync();
 

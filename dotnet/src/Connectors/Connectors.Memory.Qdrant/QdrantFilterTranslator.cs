@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -192,14 +193,75 @@ internal class QdrantFilterTranslator
 
     private Filter TranslateContains(Expression source, Expression item)
     {
-        // TODO: Inline/parameterized array?
-        if (this.TryTranslateFieldAccess(source, out _))
+        switch (source)
         {
-            // Oddly, in Qdrant, tag list contains is handled using a Match condition, just like equality.
-            return this.TranslateEqual(source, item);
+            // Contains over field enumerable
+            case var _ when this.TryTranslateFieldAccess(source, out _):
+                // Oddly, in Qdrant, tag list contains is handled using a Match condition, just like equality.
+                return this.TranslateEqual(source, item);
+
+            // Contains over inline enumerable
+            case NewArrayExpression newArray:
+                var elements = new object?[newArray.Expressions.Count];
+
+                for (var i = 0; i < newArray.Expressions.Count; i++)
+                {
+                    if (!TryGetConstant(newArray.Expressions[i], out var elementValue))
+                    {
+                        throw new NotSupportedException("Invalid element in array");
+                    }
+
+                    elements[i] = elementValue;
+                }
+
+                return ProcessInlineEnumerable(elements, item);
+
+            // Contains over captured enumerable (we inline)
+            case var _ when TryGetConstant(source, out var constantEnumerable)
+                            && constantEnumerable is IEnumerable enumerable and not string:
+                return ProcessInlineEnumerable(enumerable, item);
+
+            default:
+                throw new NotSupportedException("Unsupported Contains");
         }
 
-        throw new NotSupportedException("Contains only supported over Qdrant list fields");
+        Filter ProcessInlineEnumerable(IEnumerable elements, Expression item)
+        {
+            if (!this.TryTranslateFieldAccess(item, out var storagePropertyName))
+            {
+                throw new NotSupportedException("Unsupported item type in Contains");
+            }
+
+            if (item.Type == typeof(string))
+            {
+                var strings = new RepeatedStrings();
+
+                foreach (var value in elements)
+                {
+                    strings.Strings.Add(value is string or null
+                        ? (string?)value
+                        : throw new ArgumentException("Non-string element in string Contains array"));
+                }
+
+                return new Filter { Must = { new Condition { Field = new FieldCondition { Key = storagePropertyName, Match = new Match { Keywords = strings } } } } };
+            }
+
+            if (item.Type == typeof(int))
+            {
+                var ints = new RepeatedIntegers();
+
+                foreach (var value in elements)
+                {
+                    ints.Integers.Add(value is int intValue
+                        ? intValue
+                        : throw new ArgumentException("Non-int element in string Contains array"));
+                }
+
+                return new Filter { Must = { new Condition { Field = new FieldCondition { Key = storagePropertyName, Match = new Match { Integers = ints } } } } };
+            }
+
+            throw new NotSupportedException("Contains only supported over array of ints or strings");
+        }
     }
 
     private bool TryTranslateFieldAccess(Expression expression, [NotNullWhen(true)] out string? storagePropertyName)
