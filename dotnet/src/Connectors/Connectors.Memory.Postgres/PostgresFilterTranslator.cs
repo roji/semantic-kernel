@@ -17,7 +17,7 @@ internal class PostgresFilterTranslator
     private IReadOnlyDictionary<string, string> _storagePropertyNames = null!;
     private ParameterExpression _recordParameter = null!;
 
-    private List<object> _parameterValues = new();
+    private readonly List<object> _parameterValues = new();
     private int _parameterIndex;
 
     private readonly StringBuilder _sql = new();
