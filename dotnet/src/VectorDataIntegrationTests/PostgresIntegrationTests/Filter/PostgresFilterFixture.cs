@@ -9,7 +9,6 @@ namespace PostgresIntegrationTests.Filter;
 public class PostgresFilterFixture : FilterFixtureBase<int>
 {
     private PostgresContainerWrapper _containerWrapper;
-    private int _nextKey = 1;
 
     public override async Task InitializeAsync()
     {
@@ -20,9 +19,6 @@ public class PostgresFilterFixture : FilterFixtureBase<int>
 
     protected override IVectorStore GetVectorStore()
         => this._containerWrapper.DefaultVectorStore;
-
-    protected override int GenerateNextKey()
-        => this._nextKey++;
 
     public override async Task DisposeAsync()
     {

@@ -9,7 +9,9 @@ namespace QdrantIntegrationTests.Filter;
 public class QdrantFilterFixture : FilterFixtureBase<ulong>
 {
     private QdrantContainerWrapper _containerWrapper;
-    private ulong _nextKey = 1;
+
+    // Qdrant doesn't support the default Flat index kind
+    protected override string IndexKind => Microsoft.Extensions.VectorData.IndexKind.Hnsw;
 
     public override async Task InitializeAsync()
     {
@@ -20,9 +22,6 @@ public class QdrantFilterFixture : FilterFixtureBase<ulong>
 
     protected override IVectorStore GetVectorStore()
         => this._containerWrapper.DefaultVectorStore;
-
-    protected override ulong GenerateNextKey()
-        => this._nextKey++;
 
     public override async Task DisposeAsync()
     {

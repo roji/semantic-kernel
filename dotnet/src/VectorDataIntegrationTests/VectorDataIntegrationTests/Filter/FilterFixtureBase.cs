@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
+using System.Globalization;
 using Microsoft.Extensions.VectorData;
 using Xunit;
 
@@ -8,6 +9,7 @@ namespace VectorDataSpecificationTests.Filter;
 public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
     where TKey : notnull
 {
+    private int _nextKeyValue = 1;
     private List<FilterRecord<TKey>>? _testData;
 
     public virtual async Task InitializeAsync()
@@ -25,8 +27,7 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
     }
 
     protected virtual VectorStoreRecordDefinition GetRecordDefinition()
-    {
-        return new VectorStoreRecordDefinition
+        => new()
         {
             Properties =
             [
@@ -34,8 +35,8 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
                 new VectorStoreRecordVectorProperty(nameof(FilterRecord<TKey>.Vector), typeof(ReadOnlyMemory<float>))
                 {
                     Dimensions = 3,
-                    DistanceFunction = DistanceFunction.CosineSimilarity,
-                    IndexKind = IndexKind.Flat
+                    DistanceFunction = this.DistanceFunction,
+                    IndexKind = this.IndexKind
                 },
 
                 new VectorStoreRecordDataProperty(nameof(FilterRecord<TKey>.Int), typeof(int)) { IsFilterable = true },
@@ -44,7 +45,9 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
                 new VectorStoreRecordDataProperty(nameof(FilterRecord<TKey>.Strings), typeof(string[])) { IsFilterable = true },
             ]
         };
-    }
+
+    protected virtual string DistanceFunction => Microsoft.Extensions.VectorData.DistanceFunction.CosineSimilarity;
+    protected virtual string IndexKind => Microsoft.Extensions.VectorData.IndexKind.Flat;
 
     public virtual IVectorStoreRecordCollection<TKey, FilterRecord<TKey>> Collection { get; private set; } = null!;
 
@@ -115,7 +118,17 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
         }
     }
 
-    protected abstract TKey GenerateNextKey();
+    protected virtual TKey GenerateNextKey()
+        => typeof(TKey) switch
+        {
+            _ when typeof(TKey) == typeof(int) => (TKey)(object)this._nextKeyValue++,
+            _ when typeof(TKey) == typeof(long) => (TKey)(object)(long)this._nextKeyValue++,
+            _ when typeof(TKey) == typeof(ulong) => (TKey)(object)(ulong)this._nextKeyValue++,
+            _ when typeof(TKey) == typeof(string) => (TKey)(object)(this._nextKeyValue++).ToString(CultureInfo.InvariantCulture),
+            _ when typeof(TKey) == typeof(Guid) => (TKey)(object)new Guid($"00000000-0000-0000-0000-00{this._nextKeyValue++:0000000000}"),
+
+            _ => throw new NotSupportedException($"Unsupported key of type '{typeof(TKey).Name}', override {nameof(this.GenerateNextKey)}")
+        };
 
     protected virtual string StoreName => "FilterTests";
 

@@ -10,7 +10,6 @@ namespace RedisIntegrationTests.Filter;
 public class RedisFilterFixture : FilterFixtureBase<string>
 {
     private RedisContainerWrapper _containerWrapper;
-    private ulong _nextKey = 1;
 
     public override async Task InitializeAsync()
     {
@@ -21,9 +20,6 @@ public class RedisFilterFixture : FilterFixtureBase<string>
 
     protected override IVectorStore GetVectorStore()
         => this._containerWrapper.DefaultVectorStore;
-
-    protected override string GenerateNextKey()
-        => (this._nextKey++).ToString(CultureInfo.InvariantCulture);
 
     public override async Task DisposeAsync()
     {

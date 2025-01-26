@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Google.Protobuf.Collections;
 using Qdrant.Client.Grpc;
+using Range = Qdrant.Client.Grpc.Range;
 
 namespace Microsoft.SemanticKernel.Connectors.Qdrant;
 
@@ -34,6 +35,12 @@ internal class QdrantFilterTranslator
         {
             BinaryExpression { NodeType: ExpressionType.Equal } equal => this.TranslateEqual(equal.Left, equal.Right),
             BinaryExpression { NodeType: ExpressionType.NotEqual } notEqual => this.TranslateEqual(notEqual.Left, notEqual.Right, negated: true),
+
+            BinaryExpression
+                {
+                    NodeType: ExpressionType.GreaterThan or ExpressionType.GreaterThanOrEqual or ExpressionType.LessThan or ExpressionType.LessThanOrEqual
+                } comparison
+                => this.TranslateComparison(comparison),
 
             BinaryExpression { NodeType: ExpressionType.AndAlso } andAlso => this.TranslateAndAlso(andAlso.Left, andAlso.Right),
             BinaryExpression { NodeType: ExpressionType.OrElse } orElse => this.TranslateOrElse(orElse.Left, orElse.Right),
@@ -83,17 +90,62 @@ internal class QdrantFilterTranslator
                         }
                     };
 
-                var filter = new Filter();
+                result = new Filter();
                 if (negated)
                 {
-                    filter.MustNot.Add(condition);
+                    result.MustNot.Add(condition);
                 }
                 else
                 {
-                    filter.Must.Add(condition);
+                    result.Must.Add(condition);
                 }
+                return true;
+            }
 
-                result = filter;
+            result = null;
+            return false;
+        }
+    }
+
+    private Filter TranslateComparison(BinaryExpression comparison)
+    {
+        return TryProcessComparison(comparison.Left, comparison.Right, out var result)
+            ? result
+            : TryProcessComparison(comparison.Right, comparison.Left, out result)
+                ? result
+                : throw new NotSupportedException("Comparison expression not supported by Qdrant");
+
+        bool TryProcessComparison(Expression first, Expression second, [NotNullWhen(true)] out Filter? result)
+        {
+            // TODO: Nullable
+            if (this.TryTranslateFieldAccess(first, out var storagePropertyName)
+                && TryGetConstant(second, out var constantValue))
+            {
+                double doubleConstantValue = constantValue switch
+                {
+                    double d => d,
+                    int i => i,
+                    long l => l,
+                    _ => throw new NotSupportedException($"Can't perform comparison on type '{constantValue?.GetType().Name}', which isn't convertible to double")
+                };
+
+                result = new Filter();
+                result.Must.Add(new Condition
+                {
+                    Field = new FieldCondition
+                    {
+                        Key = storagePropertyName,
+                        Range = comparison.NodeType switch
+                        {
+                            ExpressionType.GreaterThan => new Range { Gt = doubleConstantValue },
+                            ExpressionType.GreaterThanOrEqual => new Range { Gte = doubleConstantValue },
+                            ExpressionType.LessThan => new Range { Lt = doubleConstantValue },
+                            ExpressionType.LessThanOrEqual => new Range { Lte = doubleConstantValue },
+
+                            _ => throw new InvalidOperationException("Unreachable")
+                        }
+                    }
+                });
                 return true;
             }
 

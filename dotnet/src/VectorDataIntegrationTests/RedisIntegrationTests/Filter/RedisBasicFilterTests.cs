@@ -10,8 +10,14 @@ public class RedisBasicFilterTests(RedisFilterFixture fixture) : BasicFilterTest
     public override Task Equal_with_null_reference_type()
         => Assert.ThrowsAsync<NotSupportedException>(() => base.Equal_with_null_reference_type());
 
+    public override Task Equal_with_null_captured()
+        => Assert.ThrowsAsync<NotSupportedException>(() => base.Equal_with_null_captured());
+
     public override Task NotEqual_with_null_referenceType()
         => Assert.ThrowsAsync<NotSupportedException>(() => base.Equal_with_null_reference_type());
+
+    public override Task NotEqual_with_null_captured()
+        => Assert.ThrowsAsync<NotSupportedException>(() => base.NotEqual_with_null_captured());
 
     public override Task Contains_over_inline_int_array()
         => Assert.ThrowsAsync<NotSupportedException>(() => base.Contains_over_inline_int_array());
