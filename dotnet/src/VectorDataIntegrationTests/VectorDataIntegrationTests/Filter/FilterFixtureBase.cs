@@ -13,7 +13,7 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
     public virtual async Task InitializeAsync()
     {
         var vectorStore = this.GetVectorStore();
-        this.Collection = vectorStore.GetCollection<TKey, FilterRecord<TKey>>(this.StoreName);
+        this.Collection = vectorStore.GetCollection<TKey, FilterRecord<TKey>>(this.StoreName, this.GetRecordDefinition());
 
         if (await this.Collection.CollectionExistsAsync())
         {
@@ -22,6 +22,28 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
 
         await this.Collection.CreateCollectionAsync();
         await this.SeedAsync();
+    }
+
+    protected virtual VectorStoreRecordDefinition GetRecordDefinition()
+    {
+        return new VectorStoreRecordDefinition
+        {
+            Properties =
+            [
+                new VectorStoreRecordKeyProperty(nameof(FilterRecord<TKey>.Key), typeof(TKey)),
+                new VectorStoreRecordVectorProperty(nameof(FilterRecord<TKey>.Vector), typeof(ReadOnlyMemory<float>))
+                {
+                    Dimensions = 3,
+                    DistanceFunction = DistanceFunction.CosineSimilarity,
+                    IndexKind = IndexKind.Flat
+                },
+
+                new VectorStoreRecordDataProperty(nameof(FilterRecord<TKey>.Int), typeof(int)) { IsFilterable = true },
+                new VectorStoreRecordDataProperty(nameof(FilterRecord<TKey>.String), typeof(string)) { IsFilterable = true },
+                new VectorStoreRecordDataProperty(nameof(FilterRecord<TKey>.Int2), typeof(int)) { IsFilterable = true },
+                new VectorStoreRecordDataProperty(nameof(FilterRecord<TKey>.Strings), typeof(string[])) { IsFilterable = true },
+            ]
+        };
     }
 
     public virtual IVectorStoreRecordCollection<TKey, FilterRecord<TKey>> Collection { get; private set; } = null!;
@@ -102,22 +124,11 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
 
 public class FilterRecord<TKey>
 {
-    [VectorStoreRecordKey]
     public required TKey Key { get; init; }
-
-    [VectorStoreRecordData(IsFilterable = true)]
-    public required int Int { get; set; }
-
-    [VectorStoreRecordData(IsFilterable = true)]
-    public required string? String { get; set; }
-
-    [VectorStoreRecordData(IsFilterable = true)]
-    public required int Int2 { get; set; }
-
-    [VectorStoreRecordData(IsFilterable = true)]
-    public required string[] Strings { get; set; }
-
-    // TODO: Move this to an overridable function on the fixture, make dimensions configurable
-    [VectorStoreRecordVector(3, DistanceFunction.CosineSimilarity, IndexKind.Hnsw)]
     public required ReadOnlyMemory<float> Vector { get; set; }
+
+    public required int Int { get; set; }
+    public required string? String { get; set; }
+    public required int Int2 { get; set; }
+    public required string[] Strings { get; set; }
 }
