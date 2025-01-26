@@ -15,9 +15,6 @@ namespace Microsoft.SemanticKernel.Connectors.Redis;
 /// </summary>
 internal static class RedisVectorStoreCollectionSearchMapping
 {
-    /// <summary>Translates a LINQ expression tree to a Redis filter.</summary>
-    private static readonly RedisFilterTranslator s_filterTranslator = new();
-
     /// <summary>
     /// Validate that the given vector is one of the types supported by the Redis connector and convert it to a byte array.
     /// </summary>
@@ -67,7 +64,7 @@ internal static class RedisVectorStoreCollectionSearchMapping
         {
             { Filter: not null, NewFilter: not null } => throw new ArgumentException("Either Filter or NewFilter can be specified, but not both"),
             { Filter: VectorSearchFilter oldFilter } => BuildOldFilter(oldFilter, storagePropertyNames),
-            { NewFilter: Expression<Func<TRecord, bool>> newFilter } => s_filterTranslator.Translate(newFilter, storagePropertyNames),
+            { NewFilter: Expression<Func<TRecord, bool>> newFilter } => new RedisFilterTranslator().Translate(newFilter, storagePropertyNames),
             _ => "*"
         };
 #pragma warning restore CS0618 // Type or member is obsolete

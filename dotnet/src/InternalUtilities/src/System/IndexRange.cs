@@ -5,6 +5,9 @@
 // https://github.com/dotnet/runtime/blob/419e949d258ecee4c40a460fb09c66d974229623/src/libraries/System.Private.CoreLib/src/System/Index.cs
 // https://github.com/dotnet/runtime/blob/419e949d258ecee4c40a460fb09c66d974229623/src/libraries/System.Private.CoreLib/src/System/Range.cs
 
+#pragma warning disable RCS1168
+#pragma warning disable RCS1211
+
 using System.Runtime.CompilerServices;
 
 namespace System

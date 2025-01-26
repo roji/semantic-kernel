@@ -20,7 +20,7 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
 
     [Fact]
     public virtual Task Equal_with_string_containing_special_characters()
-        => this.TestFilter(r => r.String == """with special"characters'""");
+        => this.TestFilter(r => r.String == """with special"characters'and\stuff""");
 
     [Fact]
     public virtual Task Equal_with_string_is_not_Contains()
@@ -31,8 +31,16 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
         => this.TestFilter(r => 8 == r.Int);
 
     [Fact]
-    public virtual Task Equal_with_null_string()
+    public virtual Task Equal_with_null_reference_type()
         => this.TestFilter(r => r.String == null);
+
+    [Fact]
+    public virtual Task Equal_with_null_captured()
+    {
+        string? s = null;
+
+        return this.TestFilter(r => r.String == s);
+    }
 
     [Fact]
     public virtual Task NotEqual_with_int()
@@ -47,8 +55,16 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
         => this.TestFilter(r => r.Int != 8);
 
     [Fact]
-    public virtual Task NotEqual_with_null_string()
+    public virtual Task NotEqual_with_null_referenceType()
         => this.TestFilter(r => r.String != null);
+
+    [Fact]
+    public virtual Task NotEqual_with_null_captured()
+    {
+        string? s = null;
+
+        return this.TestFilter(r => r.String != s);
+    }
 
     #endregion Equality
 

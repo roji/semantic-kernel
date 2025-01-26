@@ -56,9 +56,6 @@ public sealed class QdrantVectorStoreRecordCollection<TRecord> : IVectorStoreRec
     /// <summary>A mapper to use for converting between qdrant point and consumer models.</summary>
     private readonly IVectorStoreRecordMapper<TRecord, PointStruct> _mapper;
 
-    /// <summary>Translates a LINQ expression tree to a Qdrant <see cref="Filter"/>.</summary>
-    private readonly QdrantFilterTranslator _filterTranslator = new();
-
     /// <summary>
     /// Initializes a new instance of the <see cref="QdrantVectorStoreRecordCollection{TRecord}"/> class.
     /// </summary>
@@ -483,7 +480,7 @@ public sealed class QdrantVectorStoreRecordCollection<TRecord> : IVectorStoreRec
         {
             { Filter: not null, NewFilter: not null } => throw new ArgumentException("Either Filter or NewFilter can be specified, but not both"),
             { Filter: VectorSearchFilter oldFilter } => QdrantVectorStoreCollectionSearchMapping.BuildFromOldFilter(oldFilter, this._propertyReader.StoragePropertyNamesMap),
-            { NewFilter: Expression<Func<TRecord, bool>> newFilter } => this._filterTranslator.Translate(newFilter, this._propertyReader.StoragePropertyNamesMap),
+            { NewFilter: Expression<Func<TRecord, bool>> newFilter } => new QdrantFilterTranslator().Translate(newFilter, this._propertyReader.StoragePropertyNamesMap),
             _ => new Filter()
         };
 #pragma warning restore CS0618 // Type or member is obsolete

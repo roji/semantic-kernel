@@ -447,6 +447,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VectorDataIntegrationTests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisIntegrationTests", "src\VectorDataIntegrationTests\RedisIntegrationTests\RedisIntegrationTests.csproj", "{F7EA82A4-A626-4316-AA47-EAC3A0E85870}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostgresIntegrationTests", "src\VectorDataIntegrationTests\PostgresIntegrationTests\PostgresIntegrationTests.csproj", "{3148FF01-38C7-4BEB-8CEC-9323EC7C593B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1198,6 +1200,12 @@ Global
 		{F7EA82A4-A626-4316-AA47-EAC3A0E85870}.Publish|Any CPU.Build.0 = Debug|Any CPU
 		{F7EA82A4-A626-4316-AA47-EAC3A0E85870}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F7EA82A4-A626-4316-AA47-EAC3A0E85870}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3148FF01-38C7-4BEB-8CEC-9323EC7C593B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3148FF01-38C7-4BEB-8CEC-9323EC7C593B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3148FF01-38C7-4BEB-8CEC-9323EC7C593B}.Publish|Any CPU.ActiveCfg = Debug|Any CPU
+		{3148FF01-38C7-4BEB-8CEC-9323EC7C593B}.Publish|Any CPU.Build.0 = Debug|Any CPU
+		{3148FF01-38C7-4BEB-8CEC-9323EC7C593B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3148FF01-38C7-4BEB-8CEC-9323EC7C593B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1363,6 +1371,7 @@ Global
 		{27D33AB3-4DFF-48BC-8D76-FB2CDF90B707} = {4F381919-F1BE-47D8-8558-3187ED04A84F}
 		{B29A972F-A774-4140-AECF-6B577C476627} = {4F381919-F1BE-47D8-8558-3187ED04A84F}
 		{F7EA82A4-A626-4316-AA47-EAC3A0E85870} = {4F381919-F1BE-47D8-8558-3187ED04A84F}
+		{3148FF01-38C7-4BEB-8CEC-9323EC7C593B} = {4F381919-F1BE-47D8-8558-3187ED04A84F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FBDC56A3-86AD-4323-AA0F-201E59123B83}

@@ -99,7 +99,7 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
             {
                 Key = this.GenerateNextKey(),
                 Int = 11,
-                String = """with special"characters'""",
+                String = """with special"characters'and\stuff""",
                 Int2 = 101,
                 Strings = ["y", "z"],
                 Vector = vector

@@ -69,12 +69,12 @@ internal class RedisFilterTranslator
 
     private void TranslateEqualityComparison(BinaryExpression binary)
     {
-        if (!TryProcessEqual(binary.Left, binary.Right) && !TryProcessEqual(binary.Right, binary.Left))
+        if (!TryProcessEqualityComparison(binary.Left, binary.Right) && !TryProcessEqualityComparison(binary.Right, binary.Left))
         {
             throw new NotSupportedException("Binary expression not supported by Redis");
         }
 
-        bool TryProcessEqual(Expression first, Expression second)
+        bool TryProcessEqualityComparison(Expression first, Expression second)
         {
             // TODO: Nullable
             if (this.TryTranslateFieldAccess(first, out var storagePropertyName)
