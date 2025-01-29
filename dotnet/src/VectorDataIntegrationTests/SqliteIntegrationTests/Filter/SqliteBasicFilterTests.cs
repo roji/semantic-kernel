@@ -1,12 +1,13 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
 using VectorDataSpecificationTests.Filter;
+using SqliteIntegrationTests.Support;
 using Xunit;
 using Xunit.Sdk;
 
-namespace PostgresIntegrationTests.Filter;
+namespace SqliteIntegrationTests.Filter;
 
-public class PostgresBasicFilterTests(PostgresFilterFixture fixture) : BasicFilterTestsBase<int>(fixture), IClassFixture<PostgresFilterFixture>
+public class SqliteBasicFilterTests(SqliteFilterFixture fixture) : BasicFilterTestsBase<ulong>(fixture), IClassFixture<SqliteFilterFixture>
 {
     public override async Task Not_over_Or()
     {
@@ -25,4 +26,14 @@ public class PostgresBasicFilterTests(PostgresFilterFixture fixture) : BasicFilt
 
         await this.TestFilter(r => r.String != null && r.String != "foo");
     }
+
+    // Array fields not (currently)s upported on SQLite (see #10343)
+    public override Task Contains_over_field_string_array()
+        => Assert.ThrowsAsync<InvalidOperationException>(() => base.Contains_over_field_string_array());
+
+    // AnyTagEqualTo not (currently) supported on SQLite
+    [Obsolete("Legacy filter support")]
+    public override Task Legacy_AnyTagEqualTo()
+        => Assert.ThrowsAsync<NotSupportedException>(() => base.Legacy_AnyTagEqualTo());
+
 }
