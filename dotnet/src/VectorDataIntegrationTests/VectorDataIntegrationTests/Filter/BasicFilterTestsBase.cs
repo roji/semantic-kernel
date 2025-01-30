@@ -2,8 +2,8 @@
 
 using System.Linq.Expressions;
 using Microsoft.Extensions.VectorData;
-using VectorDataSpecificationTests.Xunit;
 using Xunit;
+using VectorDataSpecificationTests.Xunit;
 
 namespace VectorDataSpecificationTests.Filter;
 

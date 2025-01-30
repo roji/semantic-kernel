@@ -32,7 +32,7 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
             Properties =
             [
                 new VectorStoreRecordKeyProperty(nameof(FilterRecord<TKey>.Key), typeof(TKey)),
-                new VectorStoreRecordVectorProperty(nameof(FilterRecord<TKey>.Vector), typeof(ReadOnlyMemory<float>))
+                new VectorStoreRecordVectorProperty(nameof(FilterRecord<TKey>.Vector), typeof(ReadOnlyMemory<float>?))
                 {
                     Dimensions = 3,
                     DistanceFunction = this.DistanceFunction,
@@ -138,7 +138,7 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
 public class FilterRecord<TKey>
 {
     public required TKey Key { get; init; }
-    public required ReadOnlyMemory<float> Vector { get; set; }
+    public ReadOnlyMemory<float>? Vector { get; set; }
 
     public required int Int { get; set; }
     public required string? String { get; set; }
