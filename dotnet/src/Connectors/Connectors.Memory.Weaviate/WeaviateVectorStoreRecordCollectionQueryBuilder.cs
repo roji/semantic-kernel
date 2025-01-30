@@ -17,13 +17,13 @@ internal static class WeaviateVectorStoreRecordCollectionQueryBuilder
     /// Builds Weaviate search query.
     /// More information here: <see href="https://weaviate.io/developers/weaviate/api/graphql/get"/>.
     /// </summary>
-    public static string BuildSearchQuery<TVector>(
+    public static string BuildSearchQuery<TRecord, TVector>(
         TVector vector,
         string collectionName,
         string vectorPropertyName,
         string keyPropertyName,
         JsonSerializerOptions jsonSerializerOptions,
-        VectorSearchOptions searchOptions,
+        VectorSearchOptions<TRecord> searchOptions,
         IReadOnlyDictionary<string, string> storagePropertyNames,
         IReadOnlyList<string> vectorPropertyStorageNames,
         IReadOnlyList<string> dataPropertyStorageNames)
