@@ -22,11 +22,11 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
 
     [ConditionalFact]
     public virtual Task Equal_with_string_containing_special_characters()
-        => this.TestFilter(r => r.String == """with special"characters'and\stuff""");
+        => this.TestFilter(r => r.String == """with some special"characters'and\stuff""");
 
     [ConditionalFact]
     public virtual Task Equal_with_string_is_not_Contains()
-        => this.TestFilter(r => r.String == "with", expectZeroResults: true);
+        => this.TestFilter(r => r.String == "some", expectZeroResults: true);
 
     [ConditionalFact]
     public virtual Task Equal_reversed()

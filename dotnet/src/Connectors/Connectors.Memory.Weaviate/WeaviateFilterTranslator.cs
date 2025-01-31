@@ -9,10 +9,12 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 
-namespace Microsoft.SemanticKernel.Connectors.Redis;
+namespace Microsoft.SemanticKernel.Connectors.Weaviate;
 
-internal class RedisFilterTranslator
+// https://weaviate.io/developers/weaviate/api/graphql/filters#filter-structure
+internal class WeaviateFilterTranslator
 {
     private IReadOnlyDictionary<string, string> _storagePropertyNames = null!;
     private ParameterExpression _recordParameter = null!;
@@ -44,26 +46,23 @@ internal class RedisFilterTranslator
                 return;
 
             case BinaryExpression { NodeType: ExpressionType.AndAlso } andAlso:
-                // https://redis.io/docs/latest/develop/interact/search-and-query/query/combined/#and
-                this._filter.Append('(');
+                this._filter.Append("{ operator: And, operands: [");
                 this.Translate(andAlso.Left);
-                this._filter.Append(' ');
+                this._filter.Append(", ");
                 this.Translate(andAlso.Right);
-                this._filter.Append(')');
+                this._filter.Append("] }");
                 return;
 
             case BinaryExpression { NodeType: ExpressionType.OrElse } orElse:
-                // https://redis.io/docs/latest/develop/interact/search-and-query/query/combined/#or
-                this._filter.Append('(');
+                this._filter.Append("{ operator: Or, operands: [");
                 this.Translate(orElse.Left);
-                this._filter.Append(" | ");
+                this._filter.Append(", ");
                 this.Translate(orElse.Right);
-                this._filter.Append(')');
+                this._filter.Append("] }");
                 return;
 
             case UnaryExpression { NodeType: ExpressionType.Not } not:
-                this.TranslateNot(not.Operand);
-                return;
+                throw new NotSupportedException("Weaviate does not support the NOT operator (see https://github.com/weaviate/weaviate/issues/3683)");
 
             // TODO: Other Contains variants (e.g. List.Contains)
             case MethodCallExpression
@@ -75,84 +74,88 @@ internal class RedisFilterTranslator
                 return;
 
             default:
-                throw new NotSupportedException("Redis does not support the following NodeType in filters: " + node?.NodeType);
+                throw new NotSupportedException("The following NodeType is unsupported: " + node?.NodeType);
         }
     }
 
     private void TranslateEqualityComparison(BinaryExpression binary)
     {
-        if (!TryProcessEqualityComparison(binary.Left, binary.Right) && !TryProcessEqualityComparison(binary.Right, binary.Left))
+        if ((this.TryTranslateFieldAccess(binary.Left, out var storagePropertyName) && TryGetConstant(binary.Right, out var value))
+            || (this.TryTranslateFieldAccess(binary.Right, out storagePropertyName) && TryGetConstant(binary.Left, out value)))
         {
-            throw new NotSupportedException("Binary expression not supported by Redis");
-        }
+            // { path: ["intPropName"], operator: Equal, ValueInt: 8 }
+            this._filter
+                .Append("{ path: [\"")
+                .Append(JsonEncodedText.Encode(storagePropertyName))
+                .Append("\"], operator: ");
 
-        bool TryProcessEqualityComparison(Expression first, Expression second)
-        {
-            // TODO: Nullable
-            if (this.TryTranslateFieldAccess(first, out var storagePropertyName)
-                && TryGetConstant(second, out var constantValue))
+            // Special handling for null comparisons
+            if (value is null && binary.NodeType is ExpressionType.Equal or ExpressionType.NotEqual)
             {
-                // Numeric negation has a special syntax (!=), for the rest we nest in a NOT
-                if (binary.NodeType is ExpressionType.NotEqual && constantValue is not int or long or float or double)
-                {
-                    this.TranslateNot(Expression.Equal(first, second));
-                    return true;
-                }
-
-                // https://redis.io/docs/latest/develop/interact/search-and-query/query/exact-match
-                this._filter.Append('@').Append(storagePropertyName);
-
-                this._filter.Append(
-                    binary.NodeType switch
-                    {
-                        ExpressionType.Equal when constantValue is int or long or float or double => $" == {constantValue}",
-                        ExpressionType.Equal when constantValue is string stringValue
-#if NETSTANDARD2_0
-                            => $$""":{"{{stringValue.Replace("\"", "\"\"")}}"}""",
-#else
-                            => $$""":{"{{stringValue.Replace("\"", "\\\"", StringComparison.Ordinal)}}"}""",
-#endif
-                        ExpressionType.Equal when constantValue is null => throw new NotSupportedException("Null value type not supported"), // TODO
-
-                        ExpressionType.NotEqual when constantValue is int or long or float or double => $" != {constantValue}",
-                        ExpressionType.NotEqual => throw new InvalidOperationException("Unreachable"), // Handled above
-
-                        ExpressionType.GreaterThan => $" > {constantValue}",
-                        ExpressionType.GreaterThanOrEqual => $" >= {constantValue}",
-                        ExpressionType.LessThan => $" < {constantValue}",
-                        ExpressionType.LessThanOrEqual => $" <= {constantValue}",
-
-                        _ => throw new InvalidOperationException("Unsupported equality/comparison")
-                    });
-
-                return true;
+                this._filter
+                    .Append("IsNull, valueBoolean: ")
+                    .Append(binary.NodeType is ExpressionType.Equal ? "true" : "false")
+                    .Append(" }");
+                return;
             }
 
-            return false;
-        }
-    }
+            // Operator
+            this._filter.Append(binary.NodeType switch
+            {
+                ExpressionType.Equal => "Equal",
+                ExpressionType.NotEqual => "NotEqual",
 
-    private void TranslateNot(Expression expression)
-    {
-        // https://redis.io/docs/latest/develop/interact/search-and-query/query/combined/#not
-        this._filter.Append("(-");
-        this.Translate(expression);
-        this._filter.Append(')');
+                ExpressionType.GreaterThan => "GreaterThan",
+                ExpressionType.GreaterThanOrEqual => "GreaterThanEqual",
+                ExpressionType.LessThan => "LessThan",
+                ExpressionType.LessThanOrEqual => "LessThanEqual",
+
+                _ => throw new UnreachableException()
+            });
+
+            this._filter.Append(", ");
+
+            // FieldType
+            var type = value.GetType();
+            if (Nullable.GetUnderlyingType(type) is Type underlying)
+            {
+                type = underlying;
+            }
+
+            this._filter.Append(value.GetType() switch
+            {
+                Type t when t == typeof(int) || t == typeof(long) || t == typeof(short) || t == typeof(byte) => "valueInt",
+                Type t when t == typeof(bool) => "valueBoolean",
+                Type t when t == typeof(string) || t == typeof(Guid) => "valueText",
+                Type t when t == typeof(float) || t == typeof(double) || t == typeof(decimal) => "valueNumber",
+                Type t when t == typeof(DateTimeOffset) => "valueDate",
+
+                _ => throw new NotSupportedException($"Unsupported value type {type.FullName} in filter.")
+            });
+
+            this._filter.Append(": ");
+
+            // Value
+            this._filter.Append(JsonSerializer.Serialize(value));
+
+            this._filter.Append('}');
+        }
     }
 
     private void TranslateContains(Expression source, Expression item)
     {
-        // Contains over tag field
+        // Contains over array
+        // { path: ["stringArrayPropName"], operator: ContainsAny, valueText: ["foo"] }
         if (this.TryTranslateFieldAccess(source, out var storagePropertyName)
             && TryGetConstant(item, out var itemConstant)
             && itemConstant is string stringConstant)
         {
             this._filter
-                .Append('@')
-                .Append(storagePropertyName)
-                .Append(":{")
-                .Append(stringConstant)
-                .Append('}');
+                .Append("{ path: [\"")
+                .Append(JsonEncodedText.Encode(storagePropertyName))
+                .Append("\"], operator: ContainsAny, valueText: [")
+                .Append(JsonEncodedText.Encode(stringConstant))
+                .Append("]}");
             return;
         }
 

@@ -102,7 +102,7 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
             {
                 Key = this.GenerateNextKey(),
                 Int = 11,
-                String = """with special"characters'and\stuff""",
+                String = """with some special"characters'and\stuff""",
                 Int2 = 101,
                 Strings = ["y", "z"],
                 Vector = vector
@@ -137,11 +137,11 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
 
 public class FilterRecord<TKey>
 {
-    public required TKey Key { get; init; }
+    public TKey Key { get; init; }
     public ReadOnlyMemory<float>? Vector { get; set; }
 
-    public required int Int { get; set; }
-    public required string? String { get; set; }
-    public required int Int2 { get; set; }
-    public required string[] Strings { get; set; }
+    public int Int { get; set; }
+    public string? String { get; set; }
+    public int Int2 { get; set; }
+    public string[] Strings { get; set; }
 }

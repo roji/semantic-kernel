@@ -19,7 +19,7 @@ public static class CosmosTestEnvironment
     public static AzureCosmosDBNoSQLVectorStore DefaultVectorStore
         => s_defaultVectorStore ?? throw new InvalidOperationException("Call InitializeAsync() first");
 
-    private static string? s_connectionString;
+    private static readonly string? s_connectionString;
 
     public static bool IsConnectionStringDefined => s_connectionString is not null;
 
