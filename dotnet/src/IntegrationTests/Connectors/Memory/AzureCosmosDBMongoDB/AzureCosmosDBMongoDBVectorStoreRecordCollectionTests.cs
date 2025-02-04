@@ -17,7 +17,7 @@ public class AzureCosmosDBMongoDBVectorStoreRecordCollectionTests(AzureCosmosDBM
 {
     private const string? SkipReason = "Azure CosmosDB MongoDB cluster is required";
 
-    [Theory(Skip = SkipReason)]
+    [Theory]
     [InlineData("sk-test-hotels", true)]
     [InlineData("nonexistentcollection", false)]
     public async Task CollectionExistsReturnsCollectionStateAsync(string collectionName, bool expectedExists)

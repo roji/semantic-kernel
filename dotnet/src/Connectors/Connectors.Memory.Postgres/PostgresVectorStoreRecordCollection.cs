@@ -261,7 +261,7 @@ public sealed class PostgresVectorStoreRecordCollection<TKey, TRecord> : IVector
         if (!PostgresConstants.SupportedVectorTypes.Contains(vectorType))
         {
             throw new NotSupportedException(
-                $"The provided vector type {vectorType.FullName} is not supported by the SQLite connector. " +
+                $"The provided vector type {vectorType.FullName} is not supported by the PostgreSQL connector. " +
                 $"Supported types are: {string.Join(", ", PostgresConstants.SupportedVectorTypes.Select(l => l.FullName))}");
         }
 

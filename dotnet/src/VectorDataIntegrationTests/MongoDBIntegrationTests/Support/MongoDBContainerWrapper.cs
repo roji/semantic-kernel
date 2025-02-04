@@ -19,7 +19,7 @@ public class MongoDBContainerWrapper : IAsyncDisposable
     private static int s_referenceCount;
 
     public MongoClient Client => s_client ?? throw new InvalidOperationException("Not initialized");
-    public IMongoDatabase Databaes => s_database ?? throw new InvalidOperationException("Not initialized");
+    public IMongoDatabase Database => s_database ?? throw new InvalidOperationException("Not initialized");
     public MongoDBVectorStore DefaultVectorStore => s_defaultVectorStore ?? throw new InvalidOperationException("Not initialized");
 
     private MongoDBContainerWrapper()

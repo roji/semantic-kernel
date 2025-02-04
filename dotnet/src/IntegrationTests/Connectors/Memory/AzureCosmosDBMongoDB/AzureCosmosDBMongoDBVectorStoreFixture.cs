@@ -29,10 +29,10 @@ public class AzureCosmosDBMongoDBVectorStoreFixture : IAsyncLifetime
     public AzureCosmosDBMongoDBVectorStoreFixture()
     {
         var configuration = new ConfigurationBuilder()
-            .AddJsonFile(path: "testsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile(path: "testsettings.json", optional: true, reloadOnChange: true)
             .AddJsonFile(
                 path: "testsettings.development.json",
-                optional: false,
+                optional: true,
                 reloadOnChange: true
             )
             .AddEnvironmentVariables()

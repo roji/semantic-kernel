@@ -5,4 +5,4 @@ using Xunit;
 
 namespace CosmosNoSQLIntegrationTests.Filter;
 
-public class CosmosNoSQLBasicFilterTests(CosmosFilterFixture fixture) : BasicFilterTestsBase<string>(fixture), IClassFixture<CosmosFilterFixture>;
+public class CosmosNoSQLBasicFilterTests(CosmosNoSQLFilterFixture fixture) : BasicFilterTestsBase<string>(fixture), IClassFixture<CosmosNoSQLFilterFixture>;

@@ -6,7 +6,7 @@ using VectorDataSpecificationTests.Filter;
 
 namespace CosmosNoSQLIntegrationTests.Filter;
 
-public class CosmosFilterFixture : FilterFixtureBase<string>
+public class CosmosNoSQLFilterFixture : FilterFixtureBase<string>
 {
     public override async Task InitializeAsync()
     {

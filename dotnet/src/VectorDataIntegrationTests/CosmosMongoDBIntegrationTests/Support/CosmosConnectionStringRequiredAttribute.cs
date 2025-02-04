@@ -1,8 +1,9 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
+using CosmosNoSQLIntegrationTests.Support;
 using VectorDataSpecificationTests.Xunit;
 
-namespace CosmosNoSQLIntegrationTests.Support;
+namespace CosmosIntegrationTests.Support;
 
 /// <summary>
 /// Checks whether the sqlite_vec extension is properly installed, and skips the test(s) otherwise.
@@ -10,9 +11,9 @@ namespace CosmosNoSQLIntegrationTests.Support;
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly)]
 public sealed class CosmosConnectionStringRequiredAttribute : Attribute, ITestCondition
 {
-    public ValueTask<bool> IsMetAsync() => new(CosmosTestEnvironment.IsConnectionStringDefined);
+    public ValueTask<bool> IsMetAsync() => new(CosmosMongoDBTestEnvironment.IsConnectionStringDefined);
 
-    public string Skip { get; set; } = "The Cosmos connection string hasn't been configured (AzureCosmosDBNoSQL:ConnectionString).";
+    public string Skip { get; set; } = "The Cosmos connection string hasn't been configured (AzureCosmosDBMongoDB:ConnectionString).";
 
     public string SkipReason
         => this.Skip;
