@@ -42,7 +42,7 @@ public class SqliteFilterFixture : FilterFixtureBase<ulong>
     protected override VectorStoreRecordDefinition GetRecordDefinition()
         => new()
         {
-            Properties = base.GetRecordDefinition().Properties.Where(p => p.PropertyType != typeof(string[])).ToList()
+            Properties = base.GetRecordDefinition().Properties.Where(p => p.PropertyType != typeof(string[]) && p.PropertyType != typeof(List<string>)).ToList()
         };
 
     public override async Task DisposeAsync()

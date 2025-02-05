@@ -31,12 +31,6 @@ public class WeaviateBasicFilterTests(WeaviateFilterFixture fixture) : BasicFilt
     #region Not
 
     // Weaviate currently doesn't support NOT (https://github.com/weaviate/weaviate/issues/3683)
-    public override Task Not_over_Equal()
-        => Assert.ThrowsAsync<NotSupportedException>(() => base.Not_over_Equal());
-
-    public override Task Not_over_NotEqual()
-        => Assert.ThrowsAsync<NotSupportedException>(() => base.Not_over_NotEqual());
-
     public override Task Not_over_And()
         => Assert.ThrowsAsync<NotSupportedException>(() => base.Not_over_And());
 
@@ -55,6 +49,9 @@ public class WeaviateBasicFilterTests(WeaviateFilterFixture fixture) : BasicFilt
 
     public override Task Contains_over_inline_string_array()
         => Assert.ThrowsAsync<NotSupportedException>(() => base.Contains_over_inline_int_array());
+
+    public override Task Contains_over_inline_string_array_with_weird_chars()
+        => Assert.ThrowsAsync<NotSupportedException>(() => base.Contains_over_inline_string_array_with_weird_chars());
 
     #endregion
 

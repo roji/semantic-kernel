@@ -62,15 +62,35 @@ internal class WeaviateFilterTranslator
                 return;
 
             case UnaryExpression { NodeType: ExpressionType.Not } not:
-                throw new NotSupportedException("Weaviate does not support the NOT operator (see https://github.com/weaviate/weaviate/issues/3683)");
-
-            // TODO: Other Contains variants (e.g. List.Contains)
-            case MethodCallExpression
+            {
+                switch (not.Operand)
                 {
-                    Method.Name: nameof(Enumerable.Contains),
-                    Arguments: [var source, var item]
-                } contains when contains.Method.DeclaringType == typeof(Enumerable):
-                this.TranslateContains(source, item);
+                    // Special handling for !(a == b) and !(a != b)
+                    case BinaryExpression { NodeType: ExpressionType.Equal or ExpressionType.NotEqual } binary:
+                        this.TranslateEqualityComparison(
+                            Expression.MakeBinary(
+                                binary.NodeType is ExpressionType.Equal ? ExpressionType.NotEqual : ExpressionType.Equal,
+                                binary.Left,
+                                binary.Right));
+                        return;
+
+                    // Not over bool field (Filter => r => !r.Bool)
+                    case MemberExpression member when member.Type == typeof(bool) && this.TryTranslateFieldAccess(member, out _):
+                        this.TranslateEqualityComparison(Expression.Equal(member, Expression.Constant(false)));
+                        return;
+
+                    default:
+                        throw new NotSupportedException("Weaviate does not support the NOT operator (see https://github.com/weaviate/weaviate/issues/3683)");
+                }
+            }
+
+            // MemberExpression is generally handled within e.g. TranslateEqual; this is used to translate direct bool inside filter (e.g. Filter => r => r.Bool)
+            case MemberExpression member when member.Type == typeof(bool) && this.TryTranslateFieldAccess(member, out _):
+                this.TranslateEqualityComparison(Expression.Equal(member, Expression.Constant(true)));
+                return;
+
+            case MethodCallExpression methodCall:
+                this.TranslateMethodCall(methodCall);
                 return;
 
             default:
@@ -139,9 +159,40 @@ internal class WeaviateFilterTranslator
             this._filter.Append(JsonSerializer.Serialize(value));
 
             this._filter.Append('}');
+
+            return;
         }
 
         throw new NotSupportedException("Invalid equality/comparison");
+    }
+
+    private void TranslateMethodCall(MethodCallExpression methodCall)
+    {
+        switch (methodCall)
+        {
+            // Enumerable.Contains()
+            case { Method.Name: nameof(Enumerable.Contains), Arguments: [var source, var item] } contains
+                when contains.Method.DeclaringType == typeof(Enumerable):
+                this.TranslateContains(source, item);
+                return;
+
+            // List.Contains()
+            case
+            {
+                Method:
+                {
+                    Name: nameof(Enumerable.Contains),
+                    DeclaringType: { IsGenericType: true } declaringType
+                },
+                Object: Expression source,
+                Arguments: [var item]
+            } when declaringType.GetGenericTypeDefinition() == typeof(List<>):
+                this.TranslateContains(source, item);
+                return;
+
+            default:
+                throw new NotSupportedException($"Unsupported method call: {methodCall.Method.DeclaringType?.Name}.{methodCall.Method.Name}");
+        }
     }
 
     private void TranslateContains(Expression source, Expression item)

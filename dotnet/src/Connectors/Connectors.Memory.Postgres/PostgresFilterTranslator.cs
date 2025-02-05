@@ -199,59 +199,78 @@ internal class PostgresFilterTranslator
 
     private void TranslateMethodCall(MethodCallExpression methodCall)
     {
-        // TODO: Other Contains variants (e.g. List.Contains)
         switch (methodCall)
         {
+            // Enumerable.Contains()
+            case { Method.Name: nameof(Enumerable.Contains), Arguments: [var source, var item] } contains
+                when contains.Method.DeclaringType == typeof(Enumerable):
+                this.TranslateContains(source, item);
+                return;
+
+            // List.Contains()
             case
             {
-                Method.Name: nameof(Enumerable.Contains),
-                Arguments: [var source, var item]
-            } contains when contains.Method.DeclaringType == typeof(Enumerable):
-            {
-                switch (source)
+                Method:
                 {
-                    // Contains over array column (r => r.Strings.Contains("foo"))
-                    case var _ when this.TryGetColumn(source, out _):
-                        this.Translate(source);
-                        this._sql.Append(" @> ARRAY[");
-                        this.Translate(item);
-                        this._sql.Append(']');
-                        return;
+                    Name: nameof(Enumerable.Contains),
+                    DeclaringType: { IsGenericType: true } declaringType
+                },
+                Object: Expression source,
+                Arguments: [var item]
+            } when declaringType.GetGenericTypeDefinition() == typeof(List<>):
+                this.TranslateContains(source, item);
+                return;
 
-                    // Contains over inline array (r => new[] { "foo", "bar" }.Contains(r.String))
-                    case NewArrayExpression newArray:
-                        this.Translate(item);
-                        this._sql.Append(" IN (");
+            default:
+                throw new NotSupportedException($"Unsupported method call: {methodCall.Method.DeclaringType?.Name}.{methodCall.Method.Name}");
+        }
+    }
 
-                        var isFirst = true;
-                        foreach (var element in newArray.Expressions)
-                        {
-                            if (isFirst)
-                            {
-                                isFirst = false;
-                            }
-                            else
-                            {
-                                this._sql.Append(", ");
-                            }
-                            this.Translate(element);
-                        }
+    private void TranslateContains(Expression source, Expression item)
+    {
+        switch (source)
+        {
+            // Contains over array column (r => r.Strings.Contains("foo"))
+            case var _ when this.TryGetColumn(source, out _):
+                this.Translate(source);
+                this._sql.Append(" @> ARRAY[");
+                this.Translate(item);
+                this._sql.Append(']');
+                return;
 
-                        this._sql.Append(')');
-                        return;
+            // Contains over inline array (r => new[] { "foo", "bar" }.Contains(r.String))
+            case NewArrayExpression newArray:
+                this.Translate(item);
+                this._sql.Append(" IN (");
 
-                    // Contains over captured array (r => arrayLocalVariable.Contains(r.String))
-                    case var _ when TryGetCapturedValue(source, out _):
-                        this.Translate(item);
-                        this._sql.Append(" = ANY (");
-                        this.Translate(source);
-                        this._sql.Append(')');
-                        return;
+                var isFirst = true;
+                foreach (var element in newArray.Expressions)
+                {
+                    if (isFirst)
+                    {
+                        isFirst = false;
+                    }
+                    else
+                    {
+                        this._sql.Append(", ");
+                    }
 
-                    default:
-                        throw new NotSupportedException("Unsupported Contains expression");
+                    this.Translate(element);
                 }
-            }
+
+                this._sql.Append(')');
+                return;
+
+            // Contains over captured array (r => arrayLocalVariable.Contains(r.String))
+            case var _ when TryGetCapturedValue(source, out _):
+                this.Translate(item);
+                this._sql.Append(" = ANY (");
+                this.Translate(source);
+                this._sql.Append(')');
+                return;
+
+            default:
+                throw new NotSupportedException("Unsupported Contains expression");
         }
     }
 
@@ -260,6 +279,17 @@ internal class PostgresFilterTranslator
         switch (unary.NodeType)
         {
             case ExpressionType.Not:
+                // Special handling for !(a == b) and !(a != b)
+                if (unary.Operand is BinaryExpression { NodeType: ExpressionType.Equal or ExpressionType.NotEqual } binary)
+                {
+                    this.TranslateBinary(
+                        Expression.MakeBinary(
+                            binary.NodeType is ExpressionType.Equal ? ExpressionType.NotEqual : ExpressionType.Equal,
+                            binary.Left,
+                            binary.Right));
+                    return;
+                }
+
                 this._sql.Append("(NOT ");
                 this.Translate(unary.Operand);
                 this._sql.Append(')');

@@ -154,52 +154,70 @@ internal class AzureAISearchFilterTranslator
 
     private void TranslateMethodCall(MethodCallExpression methodCall)
     {
-        // TODO: Other Contains variants (e.g. List.Contains)
         switch (methodCall)
         {
+            // Enumerable.Contains()
+            case { Method.Name: nameof(Enumerable.Contains), Arguments: [var source, var item] } contains
+                when contains.Method.DeclaringType == typeof(Enumerable):
+                this.TranslateContains(source, item);
+                return;
+
+            // List.Contains()
             case
             {
-                Method.Name: nameof(Enumerable.Contains),
-                Arguments: [var source, var item]
-            } contains when contains.Method.DeclaringType == typeof(Enumerable):
-            {
-                switch (source)
+                Method:
                 {
-                    // Contains over array field (r => r.Strings.Contains("foo"))
-                    case var _ when this.TryGetField(source, out _):
-                        this.Translate(source);
-                        this._filter.Append("/any(t: t eq ");
-                        this.Translate(item);
-                        this._filter.Append(')');
-                        return;
+                    Name: nameof(Enumerable.Contains),
+                    DeclaringType: { IsGenericType: true } declaringType
+                },
+                Object: Expression source,
+                Arguments: [var item]
+            } when declaringType.GetGenericTypeDefinition() == typeof(List<>):
+                this.TranslateContains(source, item);
+                return;
 
-                    // Contains over inline enumerable
-                    case NewArrayExpression newArray:
-                        var elements = new object?[newArray.Expressions.Count];
+            default:
+                throw new NotSupportedException($"Unsupported method call: {methodCall.Method.DeclaringType?.Name}.{methodCall.Method.Name}");
+        }
+    }
 
-                        for (var i = 0; i < newArray.Expressions.Count; i++)
-                        {
-                            if (!TryGetConstant(newArray.Expressions[i], out var elementValue))
-                            {
-                                throw new NotSupportedException("Invalid element in array");
-                            }
+    private void TranslateContains(Expression source, Expression item)
+    {
+        switch (source)
+        {
+            // Contains over array field (r => r.Strings.Contains("foo"))
+            case var _ when this.TryGetField(source, out _):
+                this.Translate(source);
+                this._filter.Append("/any(t: t eq ");
+                this.Translate(item);
+                this._filter.Append(')');
+                return;
 
-                            elements[i] = elementValue;
-                        }
+            // Contains over inline enumerable
+            case NewArrayExpression newArray:
+                var elements = new object?[newArray.Expressions.Count];
 
-                        ProcessInlineEnumerable(elements, item);
-                        return;
+                for (var i = 0; i < newArray.Expressions.Count; i++)
+                {
+                    if (!TryGetConstant(newArray.Expressions[i], out var elementValue))
+                    {
+                        throw new NotSupportedException("Invalid element in array");
+                    }
 
-                    // Contains over captured enumerable (we inline)
-                    case var _ when TryGetConstant(source, out var constantEnumerable)
-                                    && constantEnumerable is IEnumerable enumerable and not string:
-                        ProcessInlineEnumerable(enumerable, item);
-                        return;
-
-                    default:
-                        throw new NotSupportedException("Unsupported Contains expression");
+                    elements[i] = elementValue;
                 }
-            }
+
+                ProcessInlineEnumerable(elements, item);
+                return;
+
+            // Contains over captured enumerable (we inline)
+            case var _ when TryGetConstant(source, out var constantEnumerable)
+                            && constantEnumerable is IEnumerable enumerable and not string:
+                ProcessInlineEnumerable(enumerable, item);
+                return;
+
+            default:
+                throw new NotSupportedException("Unsupported Contains expression");
         }
 
         void ProcessInlineEnumerable(IEnumerable elements, Expression item)
@@ -261,6 +279,17 @@ internal class AzureAISearchFilterTranslator
         switch (unary.NodeType)
         {
             case ExpressionType.Not:
+                // Special handling for !(a == b) and !(a != b)
+                if (unary.Operand is BinaryExpression { NodeType: ExpressionType.Equal or ExpressionType.NotEqual } binary)
+                {
+                    this.TranslateBinary(
+                        Expression.MakeBinary(
+                            binary.NodeType is ExpressionType.Equal ? ExpressionType.NotEqual : ExpressionType.Equal,
+                            binary.Left,
+                            binary.Right));
+                    return;
+                }
+
                 this._filter.Append("(not ");
                 this.Translate(unary.Operand);
                 this._filter.Append(')');

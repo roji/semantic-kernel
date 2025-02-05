@@ -65,13 +65,15 @@ internal class RedisFilterTranslator
                 this.TranslateNot(not.Operand);
                 return;
 
-            // TODO: Other Contains variants (e.g. List.Contains)
-            case MethodCallExpression
-                {
-                    Method.Name: nameof(Enumerable.Contains),
-                    Arguments: [var source, var item]
-                } contains when contains.Method.DeclaringType == typeof(Enumerable):
-                this.TranslateContains(source, item);
+            // MemberExpression is generally handled within e.g. TranslateEqual; this is used to translate direct bool inside filter (e.g. Filter => r => r.Bool)
+            case MemberExpression member when member.Type == typeof(bool) && this.TryTranslateFieldAccess(member, out _):
+            {
+                this.TranslateEqualityComparison(Expression.Equal(member, Expression.Constant(true)));
+                return;
+            }
+
+            case MethodCallExpression methodCall:
+                this.TranslateMethodCall(methodCall);
                 return;
 
             default:
@@ -138,6 +140,35 @@ internal class RedisFilterTranslator
         this._filter.Append("(-");
         this.Translate(expression);
         this._filter.Append(')');
+    }
+
+    private void TranslateMethodCall(MethodCallExpression methodCall)
+    {
+        switch (methodCall)
+        {
+            // Enumerable.Contains()
+            case { Method.Name: nameof(Enumerable.Contains), Arguments: [var source, var item] } contains
+                when contains.Method.DeclaringType == typeof(Enumerable):
+                this.TranslateContains(source, item);
+                return;
+
+            // List.Contains()
+            case
+            {
+                Method:
+                {
+                    Name: nameof(Enumerable.Contains),
+                    DeclaringType: { IsGenericType: true } declaringType
+                },
+                Object: Expression source,
+                Arguments: [var item]
+            } when declaringType.GetGenericTypeDefinition() == typeof(List<>):
+                this.TranslateContains(source, item);
+                return;
+
+            default:
+                throw new NotSupportedException($"Unsupported method call: {methodCall.Method.DeclaringType?.Name}.{methodCall.Method.Name}");
+        }
     }
 
     private void TranslateContains(Expression source, Expression item)

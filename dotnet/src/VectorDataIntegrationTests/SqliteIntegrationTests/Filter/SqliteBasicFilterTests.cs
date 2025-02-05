@@ -27,13 +27,21 @@ public class SqliteBasicFilterTests(SqliteFilterFixture fixture) : BasicFilterTe
         await this.TestFilter(r => r.String != null && r.String != "foo");
     }
 
-    // Array fields not (currently)s upported on SQLite (see #10343)
+    // Array fields not (currently) supported on SQLite (see #10343)
     public override Task Contains_over_field_string_array()
         => Assert.ThrowsAsync<InvalidOperationException>(() => base.Contains_over_field_string_array());
 
+    // List fields not (currently) supported on SQLite (see #10343)
+    public override Task Contains_over_field_string_List()
+        => Assert.ThrowsAsync<InvalidOperationException>(() => base.Contains_over_field_string_List());
+
     // AnyTagEqualTo not (currently) supported on SQLite
     [Obsolete("Legacy filter support")]
-    public override Task Legacy_AnyTagEqualTo()
-        => Assert.ThrowsAsync<NotSupportedException>(() => base.Legacy_AnyTagEqualTo());
+    public override Task Legacy_AnyTagEqualTo_array()
+        => Assert.ThrowsAsync<NotSupportedException>(() => base.Legacy_AnyTagEqualTo_array());
+
+    [Obsolete("Legacy filter support")]
+    public override Task Legacy_AnyTagEqualTo_List()
+        => Assert.ThrowsAsync<NotSupportedException>(() => base.Legacy_AnyTagEqualTo_List());
 
 }

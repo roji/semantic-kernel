@@ -25,4 +25,8 @@ public class PostgresBasicFilterTests(PostgresFilterFixture fixture) : BasicFilt
 
         await this.TestFilter(r => r.String != null && r.String != "foo");
     }
+
+    [Obsolete("Legacy filter support")]
+    public override Task Legacy_AnyTagEqualTo_array()
+        => Assert.ThrowsAsync<ArgumentException>(() => base.Legacy_AnyTagEqualTo_array());
 }

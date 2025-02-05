@@ -189,30 +189,58 @@ internal class AzureCosmosDBNoSqlFilterTranslator
 
     private void TranslateMethodCall(MethodCallExpression methodCall)
     {
-        // TODO: Other Contains variants (e.g. List.Contains)
         switch (methodCall)
         {
+            // Enumerable.Contains()
+            case { Method.Name: nameof(Enumerable.Contains), Arguments: [var source, var item] } contains
+                when contains.Method.DeclaringType == typeof(Enumerable):
+                this.TranslateContains(source, item);
+                return;
+
+            // List.Contains()
             case
             {
-                Method.Name: nameof(Enumerable.Contains),
-                Arguments: [var source, var item]
-            } contains when contains.Method.DeclaringType == typeof(Enumerable):
-            {
-                this._sql.Append("ARRAY_CONTAINS(");
-                this.Translate(source);
-                this._sql.Append(", ");
-                this.Translate(item);
-                this._sql.Append(')');
+                Method:
+                {
+                    Name: nameof(Enumerable.Contains),
+                    DeclaringType: { IsGenericType: true } declaringType
+                },
+                Object: Expression source,
+                Arguments: [var item]
+            } when declaringType.GetGenericTypeDefinition() == typeof(List<>):
+                this.TranslateContains(source, item);
                 return;
-            }
+
+            default:
+                throw new NotSupportedException($"Unsupported method call: {methodCall.Method.DeclaringType?.Name}.{methodCall.Method.Name}");
         }
+    }
+
+    private void TranslateContains(Expression source, Expression item)
+    {
+        this._sql.Append("ARRAY_CONTAINS(");
+        this.Translate(source);
+        this._sql.Append(", ");
+        this.Translate(item);
+        this._sql.Append(')');
     }
 
     private void TranslateUnary(UnaryExpression unary)
     {
         switch (unary.NodeType)
         {
+            // Special handling for !(a == b) and !(a != b)
             case ExpressionType.Not:
+                if (unary.Operand is BinaryExpression { NodeType: ExpressionType.Equal or ExpressionType.NotEqual } binary)
+                {
+                    this.TranslateBinary(
+                        Expression.MakeBinary(
+                            binary.NodeType is ExpressionType.Equal ? ExpressionType.NotEqual : ExpressionType.Equal,
+                            binary.Left,
+                            binary.Right));
+                    return;
+                }
+
                 this._sql.Append("(NOT ");
                 this.Translate(unary.Operand);
                 this._sql.Append(')');

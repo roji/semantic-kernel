@@ -34,12 +34,6 @@ public class MongoDBBasicFilterTests(MongoDBFilterFixture fixture) : BasicFilter
 
     // MongoDB currently doesn't support NOT in vector search pre-filters
     // (https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-stage/#atlas-vector-search-pre-filter)
-    public override Task Not_over_Equal()
-        => Assert.ThrowsAsync<NotSupportedException>(() => base.Not_over_Equal());
-
-    public override Task Not_over_NotEqual()
-        => Assert.ThrowsAsync<NotSupportedException>(() => base.Not_over_NotEqual());
-
     public override Task Not_over_And()
         => Assert.ThrowsAsync<NotSupportedException>(() => base.Not_over_And());
 
@@ -51,8 +45,15 @@ public class MongoDBBasicFilterTests(MongoDBFilterFixture fixture) : BasicFilter
     public override Task Contains_over_field_string_array()
         => Assert.ThrowsAsync<NotSupportedException>(() => base.Contains_over_field_string_array());
 
+    public override Task Contains_over_field_string_List()
+        => Assert.ThrowsAsync<NotSupportedException>(() => base.Contains_over_field_string_List());
+
     // AnyTagEqualTo not (currently) supported on SQLite
     [Obsolete("Legacy filter support")]
-    public override Task Legacy_AnyTagEqualTo()
-        => Assert.ThrowsAsync<NotSupportedException>(() => base.Legacy_AnyTagEqualTo());
+    public override Task Legacy_AnyTagEqualTo_array()
+        => Assert.ThrowsAsync<NotSupportedException>(() => base.Legacy_AnyTagEqualTo_array());
+
+    [Obsolete("Legacy filter support")]
+    public override Task Legacy_AnyTagEqualTo_List()
+        => Assert.ThrowsAsync<NotSupportedException>(() => base.Legacy_AnyTagEqualTo_List());
 }

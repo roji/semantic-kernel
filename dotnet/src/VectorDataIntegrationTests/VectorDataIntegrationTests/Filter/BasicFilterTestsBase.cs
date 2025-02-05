@@ -68,6 +68,10 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
         return this.TestFilter(r => r.String != s);
     }
 
+    [ConditionalFact]
+    public virtual Task Bool()
+        => this.TestFilter(r => r.Bool);
+
     #endregion Equality
 
     #region Comparison
@@ -130,13 +134,21 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
     public virtual Task Not_over_Or()
         => this.TestFilter(r => !(r.Int == 8 || r.String == "foo"));
 
+    [ConditionalFact]
+    public virtual Task Not_over_bool()
+        => this.TestFilter(r => !r.Bool);
+
     #endregion Logical operators
 
     #region Contains
 
     [ConditionalFact]
     public virtual Task Contains_over_field_string_array()
-        => this.TestFilter(r => r.Strings.Contains("x"));
+        => this.TestFilter(r => r.StringArray.Contains("x"));
+
+    [ConditionalFact]
+    public virtual Task Contains_over_field_string_List()
+        => this.TestFilter(r => r.StringList.Contains("x"));
 
     [ConditionalFact]
     public virtual Task Contains_over_inline_int_array()
@@ -171,26 +183,33 @@ public abstract class BasicFilterTestsBase<TKey>(FilterFixtureBase<TKey> fixture
 
     #region Legacy filter support
 
-    [Fact]
+    [ConditionalFact]
     [Obsolete("Legacy filter support")]
     public virtual Task Legacy_equality()
         => this.TestLegacyFilter(
             new VectorSearchFilter().EqualTo("Int", 8),
             r => r.Int == 8);
 
-    [Fact]
+    [ConditionalFact]
     [Obsolete("Legacy filter support")]
     public virtual Task Legacy_And()
         => this.TestLegacyFilter(
             new VectorSearchFilter().EqualTo("Int", 8).EqualTo("String", "foo"),
             r => r.Int == 8);
 
-    [Fact]
+    [ConditionalFact]
     [Obsolete("Legacy filter support")]
-    public virtual Task Legacy_AnyTagEqualTo()
+    public virtual Task Legacy_AnyTagEqualTo_array()
         => this.TestLegacyFilter(
-            new VectorSearchFilter().AnyTagEqualTo("Strings", "x"),
-            r => r.Strings.Contains("x"));
+            new VectorSearchFilter().AnyTagEqualTo("StringArray", "x"),
+            r => r.StringArray.Contains("x"));
+
+    [ConditionalFact]
+    [Obsolete("Legacy filter support")]
+    public virtual Task Legacy_AnyTagEqualTo_List()
+        => this.TestLegacyFilter(
+            new VectorSearchFilter().AnyTagEqualTo("StringList", "x"),
+            r => r.StringArray.Contains("x"));
 
     #endregion Legacy filter support
 

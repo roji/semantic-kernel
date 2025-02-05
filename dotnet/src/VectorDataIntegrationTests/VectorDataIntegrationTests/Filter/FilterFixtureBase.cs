@@ -41,8 +41,10 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
 
                 new VectorStoreRecordDataProperty(nameof(FilterRecord<TKey>.Int), typeof(int)) { IsFilterable = true },
                 new VectorStoreRecordDataProperty(nameof(FilterRecord<TKey>.String), typeof(string)) { IsFilterable = true },
+                new VectorStoreRecordDataProperty(nameof(FilterRecord<TKey>.Bool), typeof(bool)) { IsFilterable = true },
                 new VectorStoreRecordDataProperty(nameof(FilterRecord<TKey>.Int2), typeof(int)) { IsFilterable = true },
-                new VectorStoreRecordDataProperty(nameof(FilterRecord<TKey>.Strings), typeof(string[])) { IsFilterable = true },
+                new VectorStoreRecordDataProperty(nameof(FilterRecord<TKey>.StringArray), typeof(string[])) { IsFilterable = true },
+                new VectorStoreRecordDataProperty(nameof(FilterRecord<TKey>.StringList), typeof(List<string>)) { IsFilterable = true }
             ]
         };
 
@@ -67,8 +69,10 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
                 Key = this.GenerateNextKey(),
                 Int = 8,
                 String = "foo",
+                Bool = true,
                 Int2 = 80,
-                Strings = ["x", "y"],
+                StringArray = ["x", "y"],
+                StringList = ["x", "y"],
                 Vector = vector
             },
             new()
@@ -76,8 +80,10 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
                 Key = this.GenerateNextKey(),
                 Int = 9,
                 String = "bar",
+                Bool = false,
                 Int2 = 90,
-                Strings = ["a", "b"],
+                StringArray = ["a", "b"],
+                StringList = ["a", "b"],
                 Vector = vector
             },
             new()
@@ -85,8 +91,10 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
                 Key = this.GenerateNextKey(),
                 Int = 9,
                 String = "foo",
+                Bool = true,
                 Int2 = 9,
-                Strings = ["x"],
+                StringArray = ["x"],
+                StringList = ["x"],
                 Vector = vector
             },
             new()
@@ -94,17 +102,21 @@ public abstract class FilterFixtureBase<TKey> : IAsyncLifetime
                 Key = this.GenerateNextKey(),
                 Int = 10,
                 String = null,
+                Bool = false,
                 Int2 = 100,
-                Strings = ["x", "y", "z"],
+                StringArray = ["x", "y", "z"],
+                StringList = ["x", "y", "z"],
                 Vector = vector
             },
             new()
             {
                 Key = this.GenerateNextKey(),
                 Int = 11,
+                Bool = true,
                 String = """with some special"characters'and\stuff""",
                 Int2 = 101,
-                Strings = ["y", "z"],
+                StringArray = ["y", "z"],
+                StringList = ["y", "z"],
                 Vector = vector
             }
         ];
@@ -142,6 +154,8 @@ public class FilterRecord<TKey>
 
     public int Int { get; set; }
     public string? String { get; set; }
+    public bool Bool { get; set; }
     public int Int2 { get; set; }
-    public string[] Strings { get; set; }
+    public string[] StringArray { get; set; }
+    public List<string> StringList { get; set; }
 }

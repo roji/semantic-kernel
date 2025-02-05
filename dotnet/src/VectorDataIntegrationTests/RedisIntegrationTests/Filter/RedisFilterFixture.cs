@@ -21,6 +21,13 @@ public class RedisFilterFixture : FilterFixtureBase<string>
     protected override IVectorStore GetVectorStore()
         => this._containerWrapper.DefaultVectorStore;
 
+    // Override to remove the bool property, which isn't (currently) supported on Redis
+    protected override VectorStoreRecordDefinition GetRecordDefinition()
+        => new()
+        {
+            Properties = base.GetRecordDefinition().Properties.Where(p => p.PropertyType != typeof(bool)).ToList()
+        };
+
     public override async Task DisposeAsync()
     {
         await this._containerWrapper.DisposeAsync();

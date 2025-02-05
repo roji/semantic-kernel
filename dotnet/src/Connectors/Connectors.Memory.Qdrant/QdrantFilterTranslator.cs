@@ -46,13 +46,11 @@ internal class QdrantFilterTranslator
             BinaryExpression { NodeType: ExpressionType.OrElse } orElse => this.TranslateOrElse(orElse.Left, orElse.Right),
             UnaryExpression { NodeType: ExpressionType.Not } not => this.TranslateNot(not.Operand),
 
-            // TODO: Other Contains variants (e.g. List.Contains)
-            MethodCallExpression
-                {
-                    Method.Name: nameof(Enumerable.Contains),
-                    Arguments: [var source, var item]
-                } contains when contains.Method.DeclaringType == typeof(Enumerable)
-                => this.TranslateContains(source, item),
+            // MemberExpression is generally handled within e.g. TranslateEqual; this is used to translate direct bool inside filter (e.g. Filter => r => r.Bool)
+            MemberExpression member when member.Type == typeof(bool) && this.TryTranslateFieldAccess(member, out _)
+                => this.TranslateEqual(member, Expression.Constant(true)),
+
+            MethodCallExpression methodCall => this.TranslateMethodCall(methodCall),
 
             _ => throw new NotSupportedException("Qdrant does not support the following NodeType in filters: " + node?.NodeType)
         };
@@ -217,6 +215,12 @@ internal class QdrantFilterTranslator
 
     private Filter TranslateNot(Expression expression)
     {
+        // Special handling for !(a == b) and !(a != b)
+        if (expression is BinaryExpression { NodeType: ExpressionType.Equal or ExpressionType.NotEqual } binary)
+        {
+            return this.TranslateEqual(binary.Left, binary.Right, negated: binary.NodeType is ExpressionType.Equal);
+        }
+
         var filter = this.Translate(expression);
 
         switch (filter)
@@ -242,6 +246,29 @@ internal class QdrantFilterTranslator
     }
 
     #endregion Logical operators
+
+    private Filter TranslateMethodCall(MethodCallExpression methodCall)
+        => methodCall switch
+        {
+            // Enumerable.Contains()
+            { Method.Name: nameof(Enumerable.Contains), Arguments: [var source, var item] } contains
+                when contains.Method.DeclaringType == typeof(Enumerable)
+                => this.TranslateContains(source, item),
+
+            // List.Contains()
+            {
+                Method:
+                {
+                    Name: nameof(Enumerable.Contains),
+                    DeclaringType: { IsGenericType: true } declaringType
+                },
+                Object: Expression source,
+                Arguments: [var item]
+            } when declaringType.GetGenericTypeDefinition() == typeof(List<>)
+                => this.TranslateContains(source, item),
+
+            _ => throw new NotSupportedException($"Unsupported method call: {methodCall.Method.DeclaringType?.Name}.{methodCall.Method.Name}")
+        };
 
     private Filter TranslateContains(Expression source, Expression item)
     {

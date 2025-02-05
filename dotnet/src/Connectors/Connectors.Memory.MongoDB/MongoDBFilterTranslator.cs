@@ -45,13 +45,12 @@ internal class MongoDBFilterTranslator
                 => this.TranslateAndOr(andOr),
             UnaryExpression { NodeType: ExpressionType.Not } not
                 => this.TranslateNot(not),
-            // UnaryExpression { NodeType: ExpressionType.Not }
-            //     => throw new NotSupportedException("MongogDB does not support the NOT operator in vector search pre-filters"),
 
-            // TODO: Other Contains variants (e.g. List.Contains)
-            MethodCallExpression { Method.Name: nameof(Enumerable.Contains), Arguments: [var source, var item] } contains
-                when contains.Method.DeclaringType == typeof(Enumerable)
-                => this.TranslateContains(source, item),
+            // MemberExpression is generally handled within e.g. TranslateEqualityComparison; this is used to translate direct bool inside filter (e.g. Filter => r => r.Bool)
+            MemberExpression member when member.Type == typeof(bool) && this.TryTranslateFieldAccess(member, out _)
+                => this.TranslateEqualityComparison(Expression.Equal(member, Expression.Constant(true))),
+
+            MethodCallExpression methodCall => this.TranslateMethodCall(methodCall),
 
             _ => throw new NotSupportedException("The following NodeType is unsupported: " + node?.NodeType)
         };
@@ -121,6 +120,21 @@ internal class MongoDBFilterTranslator
 
     private BsonDocument TranslateNot(UnaryExpression not)
     {
+        switch (not.Operand)
+        {
+            // Special handling for !(a == b) and !(a != b)
+            case BinaryExpression { NodeType: ExpressionType.Equal or ExpressionType.NotEqual } binary:
+                return this.TranslateEqualityComparison(
+                    Expression.MakeBinary(
+                        binary.NodeType is ExpressionType.Equal ? ExpressionType.NotEqual : ExpressionType.Equal,
+                        binary.Left,
+                        binary.Right));
+
+            // Not over bool field (Filter => r => !r.Bool)
+            case MemberExpression member when member.Type == typeof(bool) && this.TryTranslateFieldAccess(member, out _):
+                return this.TranslateEqualityComparison(Expression.Equal(member, Expression.Constant(false)));
+        }
+
         var operand = this.Translate(not.Operand);
 
         // Identify NOT over $in, transform to $nin (https://www.mongodb.com/docs/manual/reference/operator/query/nin/#mongodb-query-op.-nin)
@@ -132,6 +146,28 @@ internal class MongoDBFilterTranslator
 
         throw new NotSupportedException("MongogDB does not support the NOT operator in vector search pre-filters");
     }
+
+    private BsonDocument TranslateMethodCall(MethodCallExpression methodCall)
+        => methodCall switch
+        {
+            // Enumerable.Contains()
+            { Method.Name: nameof(Enumerable.Contains), Arguments: [var source, var item] } contains
+                when contains.Method.DeclaringType == typeof(Enumerable)
+                => this.TranslateContains(source, item),
+
+            // List.Contains()
+            {
+                Method:
+                {
+                    Name: nameof(Enumerable.Contains),
+                    DeclaringType: { IsGenericType: true } declaringType
+                },
+                Object: Expression source,
+                Arguments: [var item]
+            } when declaringType.GetGenericTypeDefinition() == typeof(List<>) => this.TranslateContains(source, item),
+
+            _ => throw new NotSupportedException($"Unsupported method call: {methodCall.Method.DeclaringType?.Name}.{methodCall.Method.Name}")
+        };
 
     private BsonDocument TranslateContains(Expression source, Expression item)
     {

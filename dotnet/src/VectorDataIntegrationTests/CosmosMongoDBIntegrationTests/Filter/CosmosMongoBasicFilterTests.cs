@@ -53,6 +53,6 @@ public class CosmosMongoBasicFilterTests(CosmosMongoFilterFixture fixture) : Bas
 
     // AnyTagEqualTo not (currently) supported on SQLite
     [Obsolete("Legacy filter support")]
-    public override Task Legacy_AnyTagEqualTo()
-        => Assert.ThrowsAsync<NotSupportedException>(() => base.Legacy_AnyTagEqualTo());
+    public override Task Legacy_AnyTagEqualTo_array()
+        => Assert.ThrowsAsync<NotSupportedException>(() => base.Legacy_AnyTagEqualTo_array());
 }
