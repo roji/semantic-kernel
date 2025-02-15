@@ -22,6 +22,8 @@ public sealed class WeaviateTestStore : TestStore
 
     public override IVectorStore DefaultVectorStore => this._defaultVectorStore ?? throw new InvalidOperationException("Not initialized");
 
+    public override string DefaultDistanceFunction => DistanceFunction.CosineDistance;
+
     public WeaviateVectorStore GetVectorStore(WeaviateVectorStoreOptions options)
         => new(this.Client, options);
 
@@ -33,9 +35,33 @@ public sealed class WeaviateTestStore : TestStore
     {
         await this._container.StartAsync();
         this._httpClient = new HttpClient { BaseAddress = new Uri($"http://localhost:{this._container.GetMappedPublicPort(WeaviateBuilder.WeaviateHttpPort)}/v1/") };
-        this._defaultVectorStore = new(this._httpClient);
+        this._defaultVectorStore = new CustomWeaviateVectorStore(this._httpClient);
     }
 
     protected override Task StopAsync()
         => this._container.StopAsync();
+
+    // Custom WeaviateVectorStore that returns collections with IndexNullState, to allow filtering for null values
+    private class CustomWeaviateVectorStore(HttpClient httpClient, WeaviateVectorStoreOptions? options = null)
+        : WeaviateVectorStore(httpClient, options)
+    {
+        private readonly HttpClient _httpClient = httpClient;
+        private readonly WeaviateVectorStoreOptions _options = options ?? new();
+
+        public override IVectorStoreRecordCollection<TKey, TRecord> GetCollection<TKey, TRecord>(string name, VectorStoreRecordDefinition? vectorStoreRecordDefinition = null)
+        {
+            var recordCollection = new WeaviateVectorStoreRecordCollection<TRecord>(
+                this._httpClient,
+                name,
+                new()
+                {
+                    VectorStoreRecordDefinition = vectorStoreRecordDefinition,
+                    Endpoint = this._options.Endpoint,
+                    ApiKey = this._options.ApiKey,
+                    IndexNullState = true
+                }) as IVectorStoreRecordCollection<TKey, TRecord>;
+
+            return recordCollection!;
+        }
+    }
 }

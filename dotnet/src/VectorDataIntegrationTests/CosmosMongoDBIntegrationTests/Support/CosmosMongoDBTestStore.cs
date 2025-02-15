@@ -22,6 +22,9 @@ public sealed class CosmosMongoDBTestStore : TestStore
     public override IVectorStore DefaultVectorStore
         => this._defaultVectorStore ?? throw new InvalidOperationException("Call InitializeAsync() first");
 
+    public override string DefaultIndexKind => IndexKind.IvfFlat;
+    public override string DefaultDistanceFunction => DistanceFunction.CosineDistance;
+
     public AzureCosmosDBMongoDBVectorStore GetVectorStore(AzureCosmosDBMongoDBVectorStoreOptions options)
         => new(this.Database, options);
 

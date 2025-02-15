@@ -21,4 +21,7 @@ internal sealed class WeaviateCollectionSchema
 
     [JsonPropertyName("properties")]
     public List<WeaviateCollectionSchemaProperty> Properties { get; set; } = [];
+
+    [JsonPropertyName("invertedIndexConfig")]
+    public WeaviateCollectionSchemaInvertedIndexConfig? InvertedIndexConfig { get; set; }
 }

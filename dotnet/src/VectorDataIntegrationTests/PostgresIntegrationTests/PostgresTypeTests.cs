@@ -1,0 +1,46 @@
+﻿// Copyright (c) Microsoft. All rights reserved.
+
+using PostgresIntegrationTests.Support;
+using VectorDataSpecificationTests;
+using VectorDataSpecificationTests.Support;
+using Xunit;
+
+// ReSharper disable RedundantOverriddenMember
+
+namespace PostgresIntegrationTests;
+
+public class PostgresTypeTests(PostgresTypeTests.Fixture fixture)
+    : TypeTests<int>(fixture), IClassFixture<PostgresTypeTests.Fixture>
+{
+    // Supported types
+    public override Task Short() => base.Short();
+    public override Task Int() => base.Int();
+    public override Task Long() => base.Long();
+    public override Task Float() => base.Float();
+    public override Task Double() => base.Double();
+    public override Task Decimal() => base.Decimal();
+    public override Task String() => base.String();
+    public override Task Bool() => base.Bool();
+    public override Task Guid() => base.Guid();
+    public override Task DateTime() => base.DateTime();
+
+    // PostgreSQL doesn't support DateTimeOffset with Offset != 0
+    public override Task DateTimeOffset()
+        => this.TestTypeStructAsync(
+            new DateTimeOffset(2020, 1, 1, 12, 30, 45, TimeSpan.Zero),
+            new DateTimeOffset(2021, 2, 3, 13, 40, 55, TimeSpan.Zero),
+            instantiationExpression: () => new DateTimeOffset(2020, 1, 1, 12, 30, 45, TimeSpan.Zero));
+
+#if NET6_0_OR_GREATER
+    public override Task DateOnly()
+        => Assert.ThrowsAsync<ArgumentException>(() => base.DateOnly());
+
+    public override Task TimeOnly()
+        => Assert.ThrowsAsync<ArgumentException>(() => base.TimeOnly());
+#endif
+
+    public new class Fixture : TypeTests<int>.Fixture
+    {
+        public override TestStore TestStore => PostgresTestStore.Instance;
+    }
+}

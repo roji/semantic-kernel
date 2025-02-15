@@ -62,7 +62,7 @@ internal class MongoDBFilterTranslator
         {
             if (value is null)
             {
-                throw new NotSupportedException("MongogDB does not support null checks in vector search pre-filters");
+                throw new NotSupportedException("MongoDB does not support null checks in vector search pre-filters");
             }
 
             // Short form of equality (instead of $eq)
@@ -144,7 +144,7 @@ internal class MongoDBFilterTranslator
             return new BsonDocument { [fieldName] = new BsonDocument { ["$nin"] = values } };
         }
 
-        throw new NotSupportedException("MongogDB does not support the NOT operator in vector search pre-filters");
+        throw new NotSupportedException("MongoDB does not support the NOT operator in vector search pre-filters");
     }
 
     private BsonDocument TranslateMethodCall(MethodCallExpression methodCall)
@@ -221,6 +221,13 @@ internal class MongoDBFilterTranslator
 
     private bool TryTranslateFieldAccess(Expression expression, [NotNullWhen(true)] out string? storagePropertyName)
     {
+        // Ignore casts up to object - these get introduced e.g. when a generic property is compared to null
+        if (expression is UnaryExpression { NodeType: ExpressionType.Convert } convert
+            && convert.Type == typeof(object))
+        {
+            expression = convert.Operand;
+        }
+
         if (expression is MemberExpression memberExpression && memberExpression.Expression == this._recordParameter)
         {
             if (!this._storagePropertyNames.TryGetValue(memberExpression.Member.Name, out storagePropertyName))

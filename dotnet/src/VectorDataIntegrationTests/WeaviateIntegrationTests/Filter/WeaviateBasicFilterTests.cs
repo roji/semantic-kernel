@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-using Microsoft.Extensions.VectorData;
 using VectorDataSpecificationTests.Filter;
 using VectorDataSpecificationTests.Support;
 using WeaviateIntegrationTests.Support;
@@ -12,25 +11,6 @@ namespace WeaviateIntegrationTests.Filter;
 public class WeaviateBasicFilterTests(WeaviateBasicFilterTests.Fixture fixture)
     : BasicFilterTests<Guid>(fixture), IClassFixture<WeaviateBasicFilterTests.Fixture>
 {
-    #region Filter by null
-
-    // Null-state indexing needs to be set up, but that's not supported yet (#10358).
-    // We could interact with Weaviate directly (not via the abstraction) to do this.
-
-    public override Task Equal_with_null_reference_type()
-        => Assert.ThrowsAsync<VectorStoreOperationException>(() => base.Equal_with_null_reference_type());
-
-    public override Task Equal_with_null_captured()
-        => Assert.ThrowsAsync<VectorStoreOperationException>(() => base.Equal_with_null_captured());
-
-    public override Task NotEqual_with_null_captured()
-        => Assert.ThrowsAsync<VectorStoreOperationException>(() => base.NotEqual_with_null_captured());
-
-    public override Task NotEqual_with_null_reference_type()
-        => Assert.ThrowsAsync<VectorStoreOperationException>(() => base.NotEqual_with_null_reference_type());
-
-    #endregion
-
     #region Not
 
     // Weaviate currently doesn't support NOT (https://github.com/weaviate/weaviate/issues/3683)
@@ -66,7 +46,5 @@ public class WeaviateBasicFilterTests(WeaviateBasicFilterTests.Fixture fixture)
     public new class Fixture : BasicFilterTests<Guid>.Fixture
     {
         public override TestStore TestStore => WeaviateTestStore.Instance;
-
-        protected override string DistanceFunction => Microsoft.Extensions.VectorData.DistanceFunction.CosineDistance;
     }
 }

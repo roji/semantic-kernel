@@ -129,6 +129,7 @@ internal static class PostgresVectorStoreRecordPropertyMapping
             Type t when t == typeof(decimal) => ("NUMERIC", false),
             Type t when t == typeof(string) => ("TEXT", true),
             Type t when t == typeof(byte[]) => ("BYTEA", true),
+            // TODO: Review the mapping here; DateTime with Kind=Utc should be mapped to timestamptz.
             Type t when t == typeof(DateTime) => ("TIMESTAMP", false),
             Type t when t == typeof(DateTimeOffset) => ("TIMESTAMPTZ", false),
             Type t when t == typeof(Guid) => ("UUID", false),

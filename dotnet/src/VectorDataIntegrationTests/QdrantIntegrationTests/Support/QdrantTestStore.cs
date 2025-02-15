@@ -22,6 +22,9 @@ internal sealed class QdrantTestStore : TestStore
 
     public override IVectorStore DefaultVectorStore => this._defaultVectorStore ?? throw new InvalidOperationException("Not initialized");
 
+    // Qdrant doesn't support the default Flat index kind
+    public override string DefaultIndexKind => IndexKind.Hnsw;
+
     public QdrantVectorStore GetVectorStore(QdrantVectorStoreOptions options)
         => new(this.Client, options);
 

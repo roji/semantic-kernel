@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
+using System;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.VectorData;
@@ -79,6 +80,13 @@ internal sealed class RedisJsonVectorStoreRecordMapper<TConsumerDataModel> : IVe
         // Since the key is not stored in the redis value, add it back in before deserializing into the data model.
         jsonObject.Add(this._keyFieldJsonPropertyName, storageModel.Key);
 
-        return JsonSerializer.Deserialize<TConsumerDataModel>(jsonObject, this._jsonSerializerOptions)!;
+        try
+        {
+            return JsonSerializer.Deserialize<TConsumerDataModel>(jsonObject, this._jsonSerializerOptions)!;
+        }
+        catch (Exception e)
+        {
+            throw;
+        }
     }
 }

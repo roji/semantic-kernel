@@ -39,8 +39,8 @@ internal static class AzureCosmosDBNoSQLVectorStoreCollectionQueryBuilder
 
         var tableVariableName = AzureCosmosDBNoSQLConstants.ContainerAlias;
 
-        var fieldsArgument = fields.Select(field => $"{tableVariableName}.{field}");
-        var vectorDistanceArgument = $"VectorDistance({tableVariableName}.{vectorPropertyName}, {VectorVariableName})";
+        var fieldsArgument = fields.Select(field => $"""{tableVariableName}["{field}"]""");
+        var vectorDistanceArgument = $"""VectorDistance({tableVariableName}["{vectorPropertyName}"], {VectorVariableName})""";
         var vectorDistanceArgumentWithAlias = $"{vectorDistanceArgument} AS {scorePropertyName}";
 
         var selectClauseArguments = string.Join(SelectClauseDelimiter, [.. fieldsArgument, vectorDistanceArgumentWithAlias]);
@@ -120,12 +120,12 @@ internal static class AzureCosmosDBNoSQLVectorStoreCollectionQueryBuilder
         var tableVariableName = AzureCosmosDBNoSQLConstants.ContainerAlias;
 
         var selectClauseArguments = string.Join(SelectClauseDelimiter,
-            fields.Select(field => $"{tableVariableName}.{field}"));
+            fields.Select(field => $"""{tableVariableName}["{field}"]"""));
 
         var whereClauseArguments = string.Join(OrConditionDelimiter,
             keys.Select((key, index) =>
-                $"({tableVariableName}.{keyStoragePropertyName} = {RecordKeyVariableName}{index} {AndConditionDelimiter} " +
-                $"{tableVariableName}.{partitionKeyStoragePropertyName} = {PartitionKeyVariableName}{index})"));
+                $"""({tableVariableName}["{keyStoragePropertyName}"] = {RecordKeyVariableName}{index} {AndConditionDelimiter} """ +
+                $"""{tableVariableName}["{partitionKeyStoragePropertyName}"] = {PartitionKeyVariableName}{index})"""));
 
         var query = $"""
                      SELECT {selectClauseArguments}
@@ -182,13 +182,13 @@ internal static class AzureCosmosDBNoSQLVectorStoreCollectionQueryBuilder
             if (filterClause is EqualToFilterClause equalToFilterClause)
             {
                 var propertyName = GetStoragePropertyName(equalToFilterClause.FieldName, storagePropertyNames);
-                whereClauseBuilder.Append($"{tableVariableName}.{propertyName} {EqualOperator} {queryParameterName}");
+                whereClauseBuilder.Append($"""{tableVariableName}["{propertyName}"] {EqualOperator} {queryParameterName}""");
                 queryParameterValue = equalToFilterClause.Value;
             }
             else if (filterClause is AnyTagEqualToFilterClause anyTagEqualToFilterClause)
             {
                 var propertyName = GetStoragePropertyName(anyTagEqualToFilterClause.FieldName, storagePropertyNames);
-                whereClauseBuilder.Append($"{ArrayContainsOperator}({tableVariableName}.{propertyName}, {queryParameterName})");
+                whereClauseBuilder.Append($"""{ArrayContainsOperator}({tableVariableName}["{propertyName}"], {queryParameterName})""");
                 queryParameterValue = anyTagEqualToFilterClause.Value;
             }
             else

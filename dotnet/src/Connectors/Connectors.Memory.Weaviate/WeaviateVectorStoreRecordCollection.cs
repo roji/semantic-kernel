@@ -76,8 +76,8 @@ public class WeaviateVectorStoreRecordCollection<TRecord> : IVectorStoreRecordCo
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters =
         {
-            new WeaviateDateTimeOffsetConverter(),
-            new WeaviateNullableDateTimeOffsetConverter()
+            new WeaviateDateTimeConverter(),
+            new WeaviateDateTimeOffsetConverter()
         }
     };
 
@@ -180,7 +180,8 @@ public class WeaviateVectorStoreRecordCollection<TRecord> : IVectorStoreRecordCo
                 this.CollectionName,
                 this._propertyReader.DataProperties,
                 this._propertyReader.VectorProperties,
-                this._propertyReader.JsonPropertyNamesMap);
+                this._propertyReader.JsonPropertyNamesMap,
+                this._options.IndexNullState);
 
             var request = new WeaviateCreateCollectionSchemaRequest(schema).Build();
 
@@ -320,12 +321,31 @@ public class WeaviateVectorStoreRecordCollection<TRecord> : IVectorStoreRecordCo
 
         if (responses is not null)
         {
+            var errorCount = 0;
+            string? firstFailureMessage = null;
+
             foreach (var response in responses)
             {
                 if (response?.Result?.IsSuccess is true)
                 {
                     yield return response.Id;
                 }
+                else
+                {
+                    errorCount++;
+                    firstFailureMessage ??= response?.Result?.Errors?.Errors?[0].Message;
+                }
+            }
+
+            if (errorCount > 0)
+            {
+                throw new VectorStoreOperationException(
+                    $"{errorCount} records failed to upsert. The reason for the first failure: {firstFailureMessage}")
+                {
+                    VectorStoreType = DatabaseName,
+                    CollectionName = this.CollectionName,
+                    OperationName = OperationName
+                };
             }
         }
     }

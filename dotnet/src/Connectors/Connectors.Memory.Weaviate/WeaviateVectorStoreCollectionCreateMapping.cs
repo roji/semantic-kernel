@@ -21,12 +21,14 @@ internal static class WeaviateVectorStoreCollectionCreateMapping
     /// <param name="dataProperties">Collection of record data properties.</param>
     /// <param name="vectorProperties">Collection of record vector properties.</param>
     /// <param name="storagePropertyNames">A dictionary that maps from a property name to the storage name that should be used when serializing it to JSON for data and vector properties.</param>
+    /// <param name="indexNullState">Whether to maintain inverted indexes for each property regarding its null state.</param>
     /// <returns>Weaviate collection schema.</returns>
     public static WeaviateCollectionSchema MapToSchema(
         string collectionName,
         IEnumerable<VectorStoreRecordDataProperty> dataProperties,
         IEnumerable<VectorStoreRecordVectorProperty> vectorProperties,
-        IReadOnlyDictionary<string, string> storagePropertyNames)
+        IReadOnlyDictionary<string, string> storagePropertyNames,
+        bool indexNullState)
     {
         var schema = new WeaviateCollectionSchema(collectionName);
 
@@ -54,6 +56,11 @@ internal static class WeaviateVectorStoreCollectionCreateMapping
                     Distance = MapDistanceFunction(property.DistanceFunction, vectorPropertyName)
                 }
             });
+        }
+
+        if (indexNullState)
+        {
+            schema.InvertedIndexConfig = new() { IndexNullState = indexNullState };
         }
 
         return schema;

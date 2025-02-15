@@ -63,8 +63,5 @@ public class CosmosMongoBasicFilterTests(CosmosMongoBasicFilterTests.Fixture fix
     public new class Fixture : BasicFilterTests<string>.Fixture
     {
         public override TestStore TestStore => CosmosMongoDBTestStore.Instance;
-
-        protected override string IndexKind => Microsoft.Extensions.VectorData.IndexKind.IvfFlat;
-        protected override string DistanceFunction => Microsoft.Extensions.VectorData.DistanceFunction.CosineDistance;
     }
 }

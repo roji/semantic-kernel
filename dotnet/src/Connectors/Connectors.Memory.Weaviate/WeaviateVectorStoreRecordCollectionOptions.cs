@@ -27,6 +27,11 @@ public sealed class WeaviateVectorStoreRecordCollectionOptions<TRecord>
     public VectorStoreRecordDefinition? VectorStoreRecordDefinition { get; init; } = null;
 
     /// <summary>
+    /// Maintains inverted indexes for each property regarding its null state; required for filtering on <see langword="null"/>.
+    /// </summary>
+    public bool IndexNullState { get; set; }
+
+    /// <summary>
     /// Weaviate endpoint for remote or local cluster.
     /// </summary>
     public Uri? Endpoint { get; set; } = null;

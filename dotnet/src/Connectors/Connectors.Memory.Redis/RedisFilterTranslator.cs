@@ -91,7 +91,6 @@ internal class RedisFilterTranslator
 
         bool TryProcessEqualityComparison(Expression first, Expression second)
         {
-            // TODO: Nullable
             if (this.TryTranslateFieldAccess(first, out var storagePropertyName)
                 && TryGetConstant(second, out var constantValue))
             {
@@ -108,13 +107,14 @@ internal class RedisFilterTranslator
                 this._filter.Append(
                     binary.NodeType switch
                     {
-                        ExpressionType.Equal when constantValue is int or long or float or double => $" == {constantValue}",
+                        ExpressionType.Equal when constantValue is short or int or long or float or double => $" == {constantValue}",
                         ExpressionType.Equal when constantValue is string stringValue
 #if NETSTANDARD2_0
                             => $$""":{"{{stringValue.Replace("\"", "\"\"")}}"}""",
 #else
                             => $$""":{"{{stringValue.Replace("\"", "\\\"", StringComparison.Ordinal)}}"}""",
 #endif
+                        ExpressionType.Equal when constantValue is bool => throw new NotSupportedException("Filtering over bool values not supported"),
                         ExpressionType.Equal when constantValue is null => throw new NotSupportedException("Null value type not supported"), // TODO
 
                         ExpressionType.NotEqual when constantValue is int or long or float or double => $" != {constantValue}",
@@ -193,6 +193,13 @@ internal class RedisFilterTranslator
 
     private bool TryTranslateFieldAccess(Expression expression, [NotNullWhen(true)] out string? storagePropertyName)
     {
+        // Ignore casts up to object - these get introduced e.g. when a generic property is compared to null
+        if (expression is UnaryExpression { NodeType: ExpressionType.Convert } convert
+            && convert.Type == typeof(object))
+        {
+            expression = convert.Operand;
+        }
+
         if (expression is MemberExpression memberExpression && memberExpression.Expression == this._recordParameter)
         {
             if (!this._storagePropertyNames.TryGetValue(memberExpression.Member.Name, out storagePropertyName))

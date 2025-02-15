@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -55,6 +56,10 @@ internal class AzureAISearchFilterTranslator
                 this.TranslateMethodCall(methodCall);
                 return;
 
+            case NewExpression @new:
+                this.TranslateNew(@new);
+                return;
+
             case UnaryExpression unary:
                 this.TranslateUnary(unary);
                 return;
@@ -90,11 +95,10 @@ internal class AzureAISearchFilterTranslator
     }
 
     private void TranslateConstant(ConstantExpression constant)
-        => this.GenerateLiteral(constant.Value);
+        => this.TranslateConstant(constant.Value);
 
-    private void GenerateLiteral(object? value)
+    private void TranslateConstant(object? value)
     {
-        // TODO: Nullable
         switch (value)
         {
             case byte b:
@@ -110,6 +114,13 @@ internal class AzureAISearchFilterTranslator
                 this._filter.Append(l);
                 return;
 
+            case float f:
+                this._filter.Append(f);
+                return;
+            case double d:
+                this._filter.Append(d);
+                return;
+
             case string s:
                 this._filter.Append('\'').Append(s.Replace("'", "''")).Append('\''); // TODO: escaping
                 return;
@@ -120,12 +131,9 @@ internal class AzureAISearchFilterTranslator
                 this._filter.Append('\'').Append(g.ToString()).Append('\'');
                 return;
 
-            case DateTime:
-            case DateTimeOffset:
-                throw new NotImplementedException();
-
-            case Array:
-                throw new NotImplementedException();
+            case DateTimeOffset d:
+                this._filter.Append(d.ToString("yyyy-MM-ddTHH:mm:ss.FFFFFFzzz", CultureInfo.InvariantCulture));
+                return;
 
             case null:
                 this._filter.Append("null");
@@ -146,7 +154,7 @@ internal class AzureAISearchFilterTranslator
 
             // Identify captured lambda variables, inline them as constants
             case var _ when TryGetCapturedValue(memberExpression, out var capturedValue):
-                this.GenerateLiteral(capturedValue);
+                this.TranslateConstant(capturedValue);
                 return;
 
             default:
@@ -181,6 +189,36 @@ internal class AzureAISearchFilterTranslator
             default:
                 throw new NotSupportedException($"Unsupported method call: {methodCall.Method.DeclaringType?.Name}.{methodCall.Method.Name}");
         }
+    }
+
+    private void TranslateNew(NewExpression @new)
+    {
+        if (TryEvaluate(@new, out var constant))
+        {
+            this.TranslateConstant((ConstantExpression)constant);
+            return;
+        }
+
+        throw new NotSupportedException($"Unsupported new expression for type: {@new.Constructor?.DeclaringType?.Name}");
+
+#pragma warning disable CA1031 // Catch a more specific exception
+        static bool TryEvaluate(Expression expression, out object? value)
+        {
+            try
+            {
+                value = Expression.Lambda<Func<object>>(
+                        Expression.Convert(expression, typeof(object)))
+                    .Compile(preferInterpretation: true)
+                    .Invoke();
+                return true;
+            }
+            catch
+            {
+                value = null;
+                return false;
+            }
+        }
+#pragma warning restore CA1031
     }
 
     private void TranslateContains(Expression source, Expression item)
@@ -292,9 +330,9 @@ RestartLoop:
 
     private void TranslateUnary(UnaryExpression unary)
     {
-        switch (unary.NodeType)
+        switch (unary)
         {
-            case ExpressionType.Not:
+            case { NodeType: ExpressionType.Not }:
                 // Special handling for !(a == b) and !(a != b)
                 if (unary.Operand is BinaryExpression { NodeType: ExpressionType.Equal or ExpressionType.NotEqual } binary)
                 {
@@ -309,6 +347,11 @@ RestartLoop:
                 this._filter.Append("(not ");
                 this.Translate(unary.Operand);
                 this._filter.Append(')');
+                return;
+
+            // Ignore casts up to object - these get introduced e.g. when a generic property is compared to null
+            case { NodeType: ExpressionType.Convert } when unary.Type == typeof(object):
+                this.Translate(unary.Operand);
                 return;
 
             default:

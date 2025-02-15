@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
@@ -113,10 +114,14 @@ public sealed class InMemoryVectorStoreRecordCollection<TKey, TRecord> : IVector
     /// <inheritdoc />
     public Task CreateCollectionAsync(CancellationToken cancellationToken = default)
     {
-        if (!this._internalCollections.ContainsKey(this._collectionName))
+        if (this._internalCollections.TryAdd(this._collectionName, new ConcurrentDictionary<object, object>()))
         {
-            this._internalCollections.TryAdd(this._collectionName, new ConcurrentDictionary<object, object>());
-            this._internalCollectionTypes.TryAdd(this._collectionName, typeof(TRecord));
+            var added = this._internalCollectionTypes.TryAdd(this._collectionName, typeof(TRecord));
+            Debug.Assert(added);
+        }
+        else
+        {
+            throw new InvalidOperationException("The collection already exists");
         }
 
         return Task.CompletedTask;
@@ -135,6 +140,7 @@ public sealed class InMemoryVectorStoreRecordCollection<TKey, TRecord> : IVector
     public Task DeleteCollectionAsync(CancellationToken cancellationToken = default)
     {
         this._internalCollections.TryRemove(this._collectionName, out _);
+        this._internalCollectionTypes.TryRemove(this._collectionName, out _);
         return Task.CompletedTask;
     }
 

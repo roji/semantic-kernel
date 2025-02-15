@@ -65,7 +65,6 @@ internal class QdrantFilterTranslator
 
         bool TryProcessEqual(Expression first, Expression second, [NotNullWhen(true)] out Filter? result)
         {
-            // TODO: Nullable
             if (this.TryTranslateFieldAccess(first, out var storagePropertyName)
                 && TryGetConstant(second, out var constantValue))
             {
@@ -82,6 +81,9 @@ internal class QdrantFilterTranslator
                                 int intValue => new Match { Integer = intValue },
                                 long longValue => new Match { Integer = longValue },
                                 bool boolValue => new Match { Boolean = boolValue },
+
+                                float => throw new NotSupportedException("The float type is supported by Qdrant, but is not filterable"),
+                                double => throw new NotSupportedException("The double type is supported by Qdrant, but is not filterable"),
 
                                 _ => throw new InvalidOperationException($"Unsupported filter value type '{constantValue.GetType().Name}'.")
                             }
@@ -115,7 +117,6 @@ internal class QdrantFilterTranslator
 
         bool TryProcessComparison(Expression first, Expression second, [NotNullWhen(true)] out Filter? result)
         {
-            // TODO: Nullable
             if (this.TryTranslateFieldAccess(first, out var storagePropertyName)
                 && TryGetConstant(second, out var constantValue))
             {
@@ -345,6 +346,13 @@ internal class QdrantFilterTranslator
 
     private bool TryTranslateFieldAccess(Expression expression, [NotNullWhen(true)] out string? storagePropertyName)
     {
+        // Ignore casts up to object - these get introduced e.g. when a generic property is compared to null
+        if (expression is UnaryExpression { NodeType: ExpressionType.Convert } convert
+            && convert.Type == typeof(object))
+        {
+            expression = convert.Operand;
+        }
+
         if (expression is MemberExpression memberExpression && memberExpression.Expression == this._recordParameter)
         {
             if (!this._storagePropertyNames.TryGetValue(memberExpression.Member.Name, out storagePropertyName))

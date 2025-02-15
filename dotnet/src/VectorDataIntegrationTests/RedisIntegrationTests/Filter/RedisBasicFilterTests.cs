@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
 using Microsoft.Extensions.VectorData;
-using Microsoft.SemanticKernel.Connectors.Redis;
 using RedisIntegrationTests.Support;
 using VectorDataSpecificationTests.Filter;
 using VectorDataSpecificationTests.Support;
@@ -61,7 +60,7 @@ public class RedisJsonCollectionBasicFilterTests(RedisJsonCollectionBasicFilterT
 {
     public new class Fixture : BasicFilterTests<string>.Fixture
     {
-        public override TestStore TestStore => RedisTestStore.Instance;
+        public override TestStore TestStore => RedisJsonTestStore.Instance;
 
         protected override string CollectionName => "JsonCollectionFilterTests";
 
@@ -71,12 +70,6 @@ public class RedisJsonCollectionBasicFilterTests(RedisJsonCollectionBasicFilterT
             {
                 Properties = base.GetRecordDefinition().Properties.Where(p => p.PropertyType != typeof(bool)).ToList()
             };
-
-        protected override IVectorStoreRecordCollection<string, FilterRecord> CreateCollection()
-            => new RedisJsonVectorStoreRecordCollection<FilterRecord>(
-                RedisTestStore.Instance.Database,
-                this.CollectionName,
-                new() { VectorStoreRecordDefinition = this.GetRecordDefinition() });
     }
 }
 
@@ -113,7 +106,7 @@ public class RedisHashSetCollectionBasicFilterTests(RedisHashSetCollectionBasicF
 
     public new class Fixture : BasicFilterTests<string>.Fixture
     {
-        public override TestStore TestStore => RedisTestStore.Instance;
+        public override TestStore TestStore => RedisHashSetTestStore.Instance;
 
         protected override string CollectionName => "HashSetCollectionFilterTests";
 
@@ -126,12 +119,6 @@ public class RedisHashSetCollectionBasicFilterTests(RedisHashSetCollectionBasicF
                     p.PropertyType != typeof(string[]) &&
                     p.PropertyType != typeof(List<string>)).ToList()
             };
-
-        protected override IVectorStoreRecordCollection<string, FilterRecord> CreateCollection()
-            => new RedisHashSetVectorStoreRecordCollection<FilterRecord>(
-                RedisTestStore.Instance.Database,
-                this.CollectionName,
-                new() { VectorStoreRecordDefinition = this.GetRecordDefinition() });
 
         protected override List<FilterRecord> BuildTestData()
         {

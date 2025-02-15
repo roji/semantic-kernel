@@ -18,6 +18,7 @@ internal sealed class WeaviateCreateCollectionSchemaRequest
         this.CollectionName = collectionSchema.CollectionName;
         this.VectorConfigurations = collectionSchema.VectorConfigurations;
         this.Properties = collectionSchema.Properties;
+        this.InvertedIndexConfig = collectionSchema.InvertedIndexConfig;
     }
 
     [JsonPropertyName("class")]
@@ -28,6 +29,9 @@ internal sealed class WeaviateCreateCollectionSchemaRequest
 
     [JsonPropertyName("properties")]
     public List<WeaviateCollectionSchemaProperty>? Properties { get; set; }
+
+    [JsonPropertyName("invertedIndexConfig")]
+    public WeaviateCollectionSchemaInvertedIndexConfig? InvertedIndexConfig { get; set; }
 
     public HttpRequestMessage Build()
     {

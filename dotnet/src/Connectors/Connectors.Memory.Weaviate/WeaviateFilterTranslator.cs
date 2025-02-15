@@ -154,7 +154,7 @@ internal class WeaviateFilterTranslator
                 Type t when t == typeof(bool) => "valueBoolean",
                 Type t when t == typeof(string) || t == typeof(Guid) => "valueText",
                 Type t when t == typeof(float) || t == typeof(double) || t == typeof(decimal) => "valueNumber",
-                Type t when t == typeof(DateTimeOffset) => "valueDate",
+                Type t when t == typeof(DateTime) || t == typeof(DateTimeOffset) => "valueDate",
 
                 _ => throw new NotSupportedException($"Unsupported value type {type.FullName} in filter.")
             });
@@ -223,6 +223,13 @@ internal class WeaviateFilterTranslator
 
     private bool TryTranslateFieldAccess(Expression expression, [NotNullWhen(true)] out string? storagePropertyName)
     {
+        // Ignore casts up to object - these get introduced e.g. when a generic property is compared to null
+        if (expression is UnaryExpression { NodeType: ExpressionType.Convert } convert
+            && convert.Type == typeof(object))
+        {
+            expression = convert.Operand;
+        }
+
         if (expression is MemberExpression memberExpression && memberExpression.Expression == this._recordParameter)
         {
             if (!this._storagePropertyNames.TryGetValue(memberExpression.Member.Name, out storagePropertyName))
@@ -252,9 +259,31 @@ internal class WeaviateFilterTranslator
                 constantValue = fieldInfo.GetValue(constant.Value);
                 return true;
 
+            case var _ when TryEvaluate(expression, out constantValue):
+                return true;
+
             default:
                 constantValue = null;
                 return false;
         }
+
+#pragma warning disable CA1031 // Catch a more specific exception
+        static bool TryEvaluate(Expression expression, out object? value)
+        {
+            try
+            {
+                value = Expression.Lambda<Func<object>>(
+                        Expression.Convert(expression, typeof(object)))
+                    .Compile(preferInterpretation: true)
+                    .Invoke();
+                return true;
+            }
+            catch
+            {
+                value = null;
+                return false;
+            }
+        }
+#pragma warning restore CA1031
     }
 }
