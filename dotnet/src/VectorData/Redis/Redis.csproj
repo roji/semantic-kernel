@@ -33,8 +33,4 @@
     <InternalsVisibleTo Include="Microsoft.SemanticKernel.Connectors.Redis.UnitTests" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\VectorData.Abstractions\VectorData.Abstractions.csproj" />
-  </ItemGroup>
-
 </Project>
